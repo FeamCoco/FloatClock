@@ -1,0 +1,46 @@
+<Window x:Class="WorldClockBar.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WorldClockBar"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ResizeMode="NoResize"
+        ShowActivated="True"
+        Visibility="Visible"
+        SizeToContent="Manual"
+        MouseLeftButtonDown="OnMouseLeftButtonDown"
+        MouseDoubleClick="OnMouseDoubleClick"
+        Loaded="OnLoaded"
+        Closing="OnClosing">
+    <Border x:Name="RootBorder"
+            CornerRadius="6"
+            Padding="6,0"
+            BorderThickness="1"
+            BorderBrush="#66000000"
+            Background="#F2FFFFFF"
+            Cursor="SizeAll"
+            HorizontalAlignment="Left">
+        <Border.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="设置..." Click="OnOpenSettings"/>
+                <MenuItem Header="选择显示器" x:Name="MonitorMenu"/>
+                <Separator/>
+                <MenuItem Header="开机自启" x:Name="AutoStartMenuItem" IsCheckable="True" Click="OnToggleAutoStart"/>
+                <MenuItem Header="始终置顶" x:Name="TopmostMenuItem" IsCheckable="True" IsChecked="True" Click="OnToggleTopmost"/>
+                <Separator/>
+                <MenuItem Header="贴回右下角" Click="OnReposition"/>
+                <MenuItem Header="退出" Click="OnExit"/>
+            </ContextMenu>
+        </Border.ContextMenu>
+        <ItemsControl x:Name="ClocksPanel">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+        </ItemsControl>
+    </Border>
+</Window>

@@ -1,0 +1,198 @@
+<Window x:Class="WorldClockBar.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WorldClockBar 设置"
+        Height="620"
+        Width="720"
+        MinHeight="520"
+        MinWidth="640"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource SettingsBg}"
+        ShowInTaskbar="True">
+    <DockPanel Margin="16">
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0" LastChildFill="False">
+            <TextBlock x:Name="StatusText" VerticalAlignment="Center" Foreground="#666" FontSize="12"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
+                <Button Content="应用" Width="88" Click="OnApply"/>
+                <Button Content="确定" Width="88" IsDefault="True" Click="OnOk"/>
+                <Button Content="取消" Width="88" IsCancel="True" Click="OnCancel"/>
+            </StackPanel>
+        </DockPanel>
+
+        <TabControl>
+            <!-- Clocks -->
+            <TabItem Header="城市 / 时区">
+                <DockPanel Margin="12">
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="添加" Width="80" Click="OnAddClock"/>
+                        <Button Content="删除" Width="80" Click="OnRemoveClock"/>
+                        <Button Content="上移" Width="80" Click="OnMoveUp"/>
+                        <Button Content="下移" Width="80" Click="OnMoveDown"/>
+                    </StackPanel>
+                    <DataGrid x:Name="ClocksGrid"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              HeadersVisibility="Column"
+                              SelectionMode="Single"
+                              GridLinesVisibility="Horizontal"
+                              Background="White"
+                              BorderBrush="{StaticResource SettingsBorder}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="显示名称" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="140"/>
+                            <DataGridTemplateColumn Header="时区" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding TimeZoneDisplay}" VerticalAlignment="Center" Margin="4,0"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding DataContext.TimeZones, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  SelectedValue="{Binding TimeZoneId, UpdateSourceTrigger=PropertyChanged}"
+                                                  SelectedValuePath="Id"
+                                                  DisplayMemberPath="DisplayName"
+                                                  IsEditable="False"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+
+            <!-- Appearance -->
+            <TabItem Header="外观">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="12">
+                    <StackPanel>
+                        <GroupBox Header="颜色" Padding="10" Margin="0,0,0,10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="背景色" VerticalAlignment="Center" Margin="0,4"/>
+                                <TextBox x:Name="BgColorBox" Grid.Column="1" Margin="4"/>
+                                <Button Grid.Column="2" Content="选择..." Click="OnPickBackground"/>
+
+                                <TextBlock Text="文字色" Grid.Row="1" VerticalAlignment="Center" Margin="0,4"/>
+                                <TextBox x:Name="FgColorBox" Grid.Row="1" Grid.Column="1" Margin="4"/>
+                                <Button Grid.Row="1" Grid.Column="2" Content="选择..." Click="OnPickForeground"/>
+
+                                <TextBlock Text="分隔符色" Grid.Row="2" VerticalAlignment="Center" Margin="0,4"/>
+                                <TextBox x:Name="SepColorBox" Grid.Row="2" Grid.Column="1" Margin="4"/>
+                                <Button Grid.Row="2" Grid.Column="2" Content="选择..." Click="OnPickSeparator"/>
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="字体与尺寸" Padding="10" Margin="0,0,0,10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="字体" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="FontFamilyBox" Grid.Column="1" Margin="4"
+                                          IsEditable="True"/>
+
+                                <TextBlock Text="字号" Grid.Row="1" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="4">
+                                    <Slider x:Name="FontSizeSlider" Minimum="10" Maximum="28" Width="220"
+                                            TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="FontSizeLabel" Width="40" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock Text="高度" Grid.Row="2" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="4">
+                                    <Slider x:Name="HeightSlider" Minimum="22" Maximum="56" Width="220"
+                                            TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="HeightLabel" Width="40" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock Text="透明度" Grid.Row="3" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="4">
+                                    <Slider x:Name="OpacitySlider" Minimum="0.3" Maximum="1.0" Width="220"
+                                            TickFrequency="0.02" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="OpacityLabel" Width="48" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock Text="圆角" Grid.Row="4" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="4">
+                                    <Slider x:Name="RadiusSlider" Minimum="0" Maximum="16" Width="220"
+                                            TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RadiusLabel" Width="40" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="位置" Padding="10" Margin="0,0,0,10">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,4">
+                                    <TextBlock Text="默认对齐" Width="100" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="AlignBox" Width="200">
+                                        <ComboBoxItem Content="右对齐（靠近系统时钟）" Tag="Right"/>
+                                        <ComboBoxItem Content="居中" Tag="Center"/>
+                                        <ComboBoxItem Content="左对齐" Tag="Left"/>
+                                    </ComboBox>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,4">
+                                    <TextBlock Text="右边距" Width="100" VerticalAlignment="Center"/>
+                                    <Slider x:Name="MarginSlider" Minimum="0" Maximum="48" Width="180"
+                                            TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="MarginLabel" Width="40" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,4">
+                                    <TextBlock Text="显示器" Width="100" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="MonitorBox" Width="320" DisplayMemberPath="DisplayName"/>
+                                </StackPanel>
+                                <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" Foreground="#666" FontSize="12"
+                                           Text="可在任务栏以外的工作区任意拖拽；靠近屏幕四边（含任务栏上沿）会自动吸附。拖动后位置会记住。"/>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Header="预设主题" Padding="10">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="深色" Width="90" Click="OnThemeDark"/>
+                                <Button Content="浅色" Width="90" Click="OnThemeLight"/>
+                                <Button Content="高对比" Width="90" Click="OnThemeHighContrast"/>
+                                <Button Content="雾蓝" Width="90" Click="OnThemeBlue"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Behavior -->
+            <TabItem Header="行为">
+                <StackPanel Margin="16">
+                    <CheckBox x:Name="ShowSecondsBox" Content="显示秒（HH:mm:ss）" Margin="0,6"/>
+                    <CheckBox x:Name="AutoStartBox" Content="开机自动启动" Margin="0,6"/>
+                    <CheckBox x:Name="AlwaysOnTopBox" Content="始终置顶显示（每秒重新钉住，避免被其它窗口盖住）" Margin="0,6" IsChecked="True" IsEnabled="False"/>
+                    <TextBlock Margin="0,16,0,4" TextWrapping="Wrap" Foreground="#555"
+                               Text="时间全部根据本机系统时钟做时区换算，不访问网络。"/>
+                    <TextBlock Margin="0,8,0,4" TextWrapping="Wrap" Foreground="#555"
+                               Text="时钟条是独立置顶窗口，贴在任务栏上方，不会注入系统任务栏，因此与常见任务栏插件冲突风险较低。"/>
+                    <TextBlock Margin="0,8,0,4" TextWrapping="Wrap" Foreground="#555"
+                               Text="始终置顶：默认开启并用 Win32 HWND_TOPMOST 每秒巩固一次。全屏独占游戏仍可能盖住（系统限制）。"/>
+                    <TextBlock x:Name="ConfigPathText" Margin="0,16,0,0" TextWrapping="Wrap"
+                               Foreground="#888" FontSize="11"/>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>
