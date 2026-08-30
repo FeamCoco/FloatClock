@@ -1,198 +1,806 @@
 <Window x:Class="WorldClockBar.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="WorldClockBar 设置"
-        Height="620"
-        Width="720"
-        MinHeight="520"
-        MinWidth="640"
+        Height="640" Width="780"
+        MinHeight="560" MinWidth="690"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource SettingsBg}"
-        ShowInTaskbar="True">
-    <DockPanel Margin="16">
-        <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0" LastChildFill="False">
-            <TextBlock x:Name="StatusText" VerticalAlignment="Center" Foreground="#666" FontSize="12"/>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
-                <Button Content="应用" Width="88" Click="OnApply"/>
-                <Button Content="确定" Width="88" IsDefault="True" Click="OnOk"/>
-                <Button Content="取消" Width="88" IsCancel="True" Click="OnCancel"/>
+        Background="Transparent"
+        ShowInTaskbar="True"
+        WindowStyle="SingleBorderWindow"
+        ResizeMode="CanResize"
+        SourceInitialized="OnSourceInitialized">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="40"
+                            ResizeBorderThickness="6"
+                            GlassFrameThickness="0"
+                            CornerRadius="0"
+                            UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <Style x:Key="SettingsRow" TargetType="Border">
+            <Setter Property="Margin" Value="16,0"/>
+            <Setter Property="MinHeight" Value="56"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Fluent.Divider}"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+        </Style>
+        <Style x:Key="RowContent" TargetType="Grid">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="RowDescText" TargetType="TextBlock" BasedOn="{StaticResource FluentRowDesc}">
+            <Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
+        <Style x:Key="ControlCol" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ============ title bar ============ -->
+        <Grid Background="Transparent">
+            <StackPanel Orientation="Horizontal" Margin="14,0,0,0" VerticalAlignment="Center">
+                <Border Width="16" Height="16" CornerRadius="4" Background="{DynamicResource Fluent.Accent}"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="&#xE823;" FontFamily="{StaticResource Fluent.IconFont}" FontSize="9"
+                               Foreground="{DynamicResource Fluent.AccentText}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock Text="WorldClockBar 设置" FontSize="12.5" Margin="10,0,0,0"
+                           Foreground="{DynamicResource Fluent.TextPrimary}" VerticalAlignment="Center"/>
             </StackPanel>
-        </DockPanel>
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                <Button x:Name="MinButton" Style="{StaticResource FluentTitleBarButton}" Click="OnMinimize">
+                    <TextBlock Text="&#xE921;" FontFamily="{StaticResource Fluent.IconFont}" FontSize="10"/>
+                </Button>
+                <Button x:Name="MaxButton" Style="{StaticResource FluentTitleBarButton}" Click="OnMaximize">
+                    <TextBlock Text="&#xE922;" FontFamily="{StaticResource Fluent.IconFont}" FontSize="10"/>
+                </Button>
+                <Button Style="{StaticResource FluentTitleBarCloseButton}" Click="OnCloseWindow">
+                    <TextBlock Text="&#xE8BB;" FontFamily="{StaticResource Fluent.IconFont}" FontSize="10"/>
+                </Button>
+            </StackPanel>
+        </Grid>
 
-        <TabControl>
-            <!-- Clocks -->
-            <TabItem Header="城市 / 时区">
-                <DockPanel Margin="12">
-                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button Content="添加" Width="80" Click="OnAddClock"/>
-                        <Button Content="删除" Width="80" Click="OnRemoveClock"/>
-                        <Button Content="上移" Width="80" Click="OnMoveUp"/>
-                        <Button Content="下移" Width="80" Click="OnMoveDown"/>
+        <!-- ============ body ============ -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="224"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- navigation -->
+            <Border Margin="8,0,0,8" CornerRadius="0" Background="{DynamicResource Fluent.NavBg}">
+                <Grid Margin="8,4,8,8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid x:Name="SearchHost">
+                        <TextBox x:Name="SearchBox" FontSize="13" Padding="28,6,9,6"
+                                 TextChanged="OnSearchTextChanged"
+                                 VerticalContentAlignment="Center"/>
+                        <TextBlock Text="&#xE721;" FontFamily="{StaticResource Fluent.IconFont}" FontSize="13"
+                                   Margin="10,0,0,0" Foreground="{DynamicResource Fluent.TextTertiary}"
+                                   VerticalAlignment="Center" IsHitTestVisible="False"/>
+                        <TextBlock x:Name="SearchPlaceholder" Text="搜索设置…" FontSize="13" Margin="30,0,0,0"
+                                   Foreground="{DynamicResource Fluent.TextTertiary}"
+                                   VerticalAlignment="Center" IsHitTestVisible="False"/>
+                        <Border x:Name="SearchResultsHost" Visibility="Collapsed" Margin="0,36,0,0">
+                            <ListBox x:Name="SearchResults"
+                                     Background="{DynamicResource Fluent.SurfaceSolid}"
+                                     BorderBrush="{DynamicResource Fluent.CardBorder}" BorderThickness="1"
+                                     Padding="4"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     SelectionChanged="OnSearchResultSelected">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Padding" Value="9,6"/>
+                                        <Setter Property="FontSize" Value="13"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource Fluent.TextPrimary}"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ListBoxItem">
+                                                    <Border x:Name="Bd" CornerRadius="4" Padding="{TemplateBinding Padding}"
+                                                            Background="Transparent">
+                                                        <ContentPresenter VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Fluent.RowHover}"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Fluent.RowSelected}"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
+                        </Border>
+                    </Grid>
+
+                    <StackPanel Grid.Row="1" Margin="0,14,0,0">
+                        <RadioButton x:Name="NavClocks" Style="{StaticResource FluentNavItem}" GroupName="Nav"
+                                     Tag="&#xE823;" Content="时钟" IsChecked="True" Checked="OnNavChanged"/>
+                        <RadioButton x:Name="NavLook" Style="{StaticResource FluentNavItem}" GroupName="Nav"
+                                     Tag="&#xE771;" Content="个性化" Checked="OnNavChanged"/>
+                        <RadioButton x:Name="NavBehavior" Style="{StaticResource FluentNavItem}" GroupName="Nav"
+                                     Tag="&#xE713;" Content="行为" Checked="OnNavChanged"/>
+                        <RadioButton x:Name="NavAbout" Style="{StaticResource FluentNavItem}" GroupName="Nav"
+                                     Tag="&#xE946;" Content="关于" Checked="OnNavChanged"/>
                     </StackPanel>
-                    <DataGrid x:Name="ClocksGrid"
-                              AutoGenerateColumns="False"
-                              CanUserAddRows="False"
-                              CanUserDeleteRows="False"
-                              HeadersVisibility="Column"
-                              SelectionMode="Single"
-                              GridLinesVisibility="Horizontal"
-                              Background="White"
-                              BorderBrush="{StaticResource SettingsBorder}">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="显示名称" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="140"/>
-                            <DataGridTemplateColumn Header="时区" Width="*">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding TimeZoneDisplay}" VerticalAlignment="Center" Margin="4,0"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <ComboBox ItemsSource="{Binding DataContext.TimeZones, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                  SelectedValue="{Binding TimeZoneId, UpdateSourceTrigger=PropertyChanged}"
-                                                  SelectedValuePath="Id"
-                                                  DisplayMemberPath="DisplayName"
-                                                  IsEditable="False"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </DockPanel>
-            </TabItem>
 
-            <!-- Appearance -->
-            <TabItem Header="外观">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="12">
-                    <StackPanel>
-                        <GroupBox Header="颜色" Padding="10" Margin="0,0,0,10">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="3" x:Name="VersionText" FontSize="11"
+                               Foreground="{DynamicResource Fluent.TextTertiary}" Margin="13,0,0,0"/>
+                </Grid>
+            </Border>
 
-                                <TextBlock Text="背景色" VerticalAlignment="Center" Margin="0,4"/>
-                                <TextBox x:Name="BgColorBox" Grid.Column="1" Margin="4"/>
-                                <Button Grid.Column="2" Content="选择..." Click="OnPickBackground"/>
+            <!-- content pages -->
+            <Grid Grid.Column="1" Margin="10,0,0,0">
 
-                                <TextBlock Text="文字色" Grid.Row="1" VerticalAlignment="Center" Margin="0,4"/>
-                                <TextBox x:Name="FgColorBox" Grid.Row="1" Grid.Column="1" Margin="4"/>
-                                <Button Grid.Row="1" Grid.Column="2" Content="选择..." Click="OnPickForeground"/>
+                <!-- ================= 时钟 ================= -->
+                <ScrollViewer x:Name="PageClocks" VerticalScrollBarVisibility="Auto"
+                              Padding="0,0,8,0">
+                    <StackPanel Margin="4,6,18,26">
+                        <TextBlock Text="时钟" Style="{StaticResource FluentPageTitle}" Margin="0,8,0,4"/>
+                        <TextBlock Text="管理时钟条显示的城市与时间格式，改动即时生效。" Style="{StaticResource FluentPageSub}"/>
 
-                                <TextBlock Text="分隔符色" Grid.Row="2" VerticalAlignment="Center" Margin="0,4"/>
-                                <TextBox x:Name="SepColorBox" Grid.Row="2" Grid.Column="1" Margin="4"/>
-                                <Button Grid.Row="2" Grid.Column="2" Content="选择..." Click="OnPickSeparator"/>
-                            </Grid>
-                        </GroupBox>
-
-                        <GroupBox Header="字体与尺寸" Padding="10" Margin="0,0,0,10">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <TextBlock Text="字体" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="FontFamilyBox" Grid.Column="1" Margin="4"
-                                          IsEditable="True"/>
-
-                                <TextBlock Text="字号" Grid.Row="1" VerticalAlignment="Center"/>
-                                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="4">
-                                    <Slider x:Name="FontSizeSlider" Minimum="10" Maximum="28" Width="220"
-                                            TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="FontSizeLabel" Width="40" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                                </StackPanel>
-
-                                <TextBlock Text="高度" Grid.Row="2" VerticalAlignment="Center"/>
-                                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="4">
-                                    <Slider x:Name="HeightSlider" Minimum="22" Maximum="56" Width="220"
-                                            TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="HeightLabel" Width="40" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                                </StackPanel>
-
-                                <TextBlock Text="透明度" Grid.Row="3" VerticalAlignment="Center"/>
-                                <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="4">
-                                    <Slider x:Name="OpacitySlider" Minimum="0.3" Maximum="1.0" Width="220"
-                                            TickFrequency="0.02" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="OpacityLabel" Width="48" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                                </StackPanel>
-
-                                <TextBlock Text="圆角" Grid.Row="4" VerticalAlignment="Center"/>
-                                <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="4">
-                                    <Slider x:Name="RadiusSlider" Minimum="0" Maximum="16" Width="220"
-                                            TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="RadiusLabel" Width="40" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Grid>
-                        </GroupBox>
-
-                        <GroupBox Header="位置" Padding="10" Margin="0,0,0,10">
+                        <!-- 城市列表 -->
+                        <Border Style="{StaticResource FluentCard}" Margin="0,20,0,0">
                             <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,4">
-                                    <TextBlock Text="默认对齐" Width="100" VerticalAlignment="Center"/>
-                                    <ComboBox x:Name="AlignBox" Width="200">
-                                        <ComboBoxItem Content="右对齐（靠近系统时钟）" Tag="Right"/>
-                                        <ComboBoxItem Content="居中" Tag="Center"/>
-                                        <ComboBoxItem Content="左对齐" Tag="Left"/>
-                                    </ComboBox>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,4">
-                                    <TextBlock Text="右边距" Width="100" VerticalAlignment="Center"/>
-                                    <Slider x:Name="MarginSlider" Minimum="0" Maximum="48" Width="180"
-                                            TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="MarginLabel" Width="40" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,4">
-                                    <TextBlock Text="显示器" Width="100" VerticalAlignment="Center"/>
-                                    <ComboBox x:Name="MonitorBox" Width="320" DisplayMemberPath="DisplayName"/>
-                                </StackPanel>
-                                <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" Foreground="#666" FontSize="12"
-                                           Text="可在任务栏以外的工作区任意拖拽；靠近屏幕四边（含任务栏上沿）会自动吸附。拖动后位置会记住。"/>
+                                <Grid Margin="16,0" Height="46">
+                                    <TextBlock Text="城市" Style="{StaticResource FluentRowTitle}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="长按拖动排序 · 或用 ⋮ 菜单" FontSize="12"
+                                               Foreground="{DynamicResource Fluent.TextTertiary}"
+                                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+                                <ItemsControl x:Name="CityList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource SettingsRow}">
+                                                <Grid Style="{StaticResource RowContent}">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="36"/>
+                                                        <ColumnDefinition Width="168"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="&#xE774;" Style="{StaticResource FluentRowIcon}"/>
+                                                    <TextBox Grid.Column="1" Style="{StaticResource FluentInlineEdit}"
+                                                             Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
+                                                             ToolTip="显示名称，点击可直接编辑"/>
+                                                    <ComboBox Grid.Column="2"
+                                                              ItemsSource="{Binding DataContext.TimeZones, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              SelectedValue="{Binding TimeZoneId}"
+                                                              SelectedValuePath="Id"
+                                                              DisplayMemberPath="DisplayName"
+                                                              HorizontalAlignment="Right"
+                                                              MinWidth="150" MaxWidth="300"
+                                                              Margin="12,0,8,0"
+                                                              ToolTip="时区（含夏令时自动换算）"/>
+                                                    <Button Grid.Column="3" Style="{StaticResource FluentSubtleButton}"
+                                                            Padding="6,4" Click="OnRowMenu"
+                                                            ToolTip="上移 / 下移 / 删除">
+                                                        <TextBlock Text="&#xE712;" FontFamily="{StaticResource Fluent.IconFont}"
+                                                                   FontSize="14"
+                                                                   Foreground="{DynamicResource Fluent.TextSecondary}"/>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Content="＋ 添加城市" Style="{StaticResource FluentLinkButton}"
+                                        HorizontalAlignment="Left" Margin="16,10,0,12" Click="OnAddCity"/>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
 
-                        <GroupBox Header="预设主题" Padding="10">
-                            <StackPanel Orientation="Horizontal">
-                                <Button Content="深色" Width="90" Click="OnThemeDark"/>
-                                <Button Content="浅色" Width="90" Click="OnThemeLight"/>
-                                <Button Content="高对比" Width="90" Click="OnThemeHighContrast"/>
-                                <Button Content="雾蓝" Width="90" Click="OnThemeBlue"/>
+                        <!-- 时间显示 -->
+                        <Border Style="{StaticResource FluentCard}" Margin="0,16,0,0">
+                            <StackPanel>
+                                <Border Style="{StaticResource SettingsRow}" BorderThickness="0">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE823;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="显示秒" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="关闭后只显示 时:分" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <CheckBox Grid.Column="2" x:Name="ShowSecondsSwitch"
+                                                  Checked="OnShowSecondsChanged" Unchecked="OnShowSecondsChanged"/>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE8D2;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="时间格式" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="12 / 24 小时制" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="2" x:Name="HourFormatBox"
+                                                  HorizontalAlignment="Right" MinWidth="120" MaxWidth="180"
+                                                  SelectionChanged="OnHourFormatChanged">
+                                            <ComboBoxItem Content="24 小时制" Tag="24"/>
+                                            <ComboBoxItem Content="12 小时制" Tag="12"/>
+                                        </ComboBox>
+                                    </Grid>
+                                </Border>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
+
+                        <!-- 位置与显示器 -->
+                        <Border Style="{StaticResource FluentCard}" Margin="0,16,0,0">
+                            <StackPanel>
+                                <Border Style="{StaticResource SettingsRow}" BorderThickness="0">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE76C;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="贴边对齐" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="未拖拽时的默认停靠位置" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="2" x:Name="AlignBox"
+                                                  HorizontalAlignment="Right" MinWidth="150" MaxWidth="230"
+                                                  SelectionChanged="OnAlignChanged">
+                                            <ComboBoxItem Content="右下角 · 靠近系统时钟" Tag="Right"/>
+                                            <ComboBoxItem Content="底部居中" Tag="Center"/>
+                                            <ComboBoxItem Content="左下角" Tag="Left"/>
+                                        </ComboBox>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE7F4;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="位置状态" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock x:Name="PositionStateText" Style="{StaticResource RowDescText}"
+                                                       Text="已贴边"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="2" Content="贴回右下角" Style="{StaticResource FluentSubtleButton}"
+                                                Padding="12,5" Click="OnRepositionClicked"/>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE7F8;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="显示器" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="时钟条所在的屏幕，可跨屏拖拽" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="2" x:Name="MonitorBox"
+                                                  HorizontalAlignment="Right" MinWidth="150" MaxWidth="250"
+                                                  DisplayMemberPath="DisplayName"
+                                                  SelectionChanged="OnMonitorChanged"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Margin="2,12,0,0" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource Fluent.TextTertiary}"
+                                   Text="时钟条可在任务栏以外的工作区任意拖拽，靠近屏幕四边自动吸附；改动会自动保存。"/>
                     </StackPanel>
                 </ScrollViewer>
-            </TabItem>
 
-            <!-- Behavior -->
-            <TabItem Header="行为">
-                <StackPanel Margin="16">
-                    <CheckBox x:Name="ShowSecondsBox" Content="显示秒（HH:mm:ss）" Margin="0,6"/>
-                    <CheckBox x:Name="AutoStartBox" Content="开机自动启动" Margin="0,6"/>
-                    <CheckBox x:Name="AlwaysOnTopBox" Content="始终置顶显示（每秒重新钉住，避免被其它窗口盖住）" Margin="0,6" IsChecked="True" IsEnabled="False"/>
-                    <TextBlock Margin="0,16,0,4" TextWrapping="Wrap" Foreground="#555"
-                               Text="时间全部根据本机系统时钟做时区换算，不访问网络。"/>
-                    <TextBlock Margin="0,8,0,4" TextWrapping="Wrap" Foreground="#555"
-                               Text="时钟条是独立置顶窗口，贴在任务栏上方，不会注入系统任务栏，因此与常见任务栏插件冲突风险较低。"/>
-                    <TextBlock Margin="0,8,0,4" TextWrapping="Wrap" Foreground="#555"
-                               Text="始终置顶：默认开启并用 Win32 HWND_TOPMOST 每秒巩固一次。全屏独占游戏仍可能盖住（系统限制）。"/>
-                    <TextBlock x:Name="ConfigPathText" Margin="0,16,0,0" TextWrapping="Wrap"
-                               Foreground="#888" FontSize="11"/>
-                </StackPanel>
-            </TabItem>
-        </TabControl>
-    </DockPanel>
+                <!-- ================= 个性化 ================= -->
+                <ScrollViewer x:Name="PageLook" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
+                              Padding="0,0,8,0">
+                    <StackPanel Margin="4,6,18,26">
+                        <TextBlock Text="个性化" Style="{StaticResource FluentPageTitle}" Margin="0,8,0,4"/>
+                        <TextBlock Text="选择主题预设，或微调颜色、字体与尺寸。" Style="{StaticResource FluentPageSub}"/>
+
+                        <!-- 主题预设 -->
+                        <Border Style="{StaticResource FluentCard}" Margin="0,20,0,0">
+                            <StackPanel>
+                                <Grid Margin="16,0" Height="46">
+                                    <TextBlock Text="主题预设" Style="{StaticResource FluentRowTitle}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="点击即换 · 跟随系统可随深浅色自动切换" FontSize="12"
+                                               Foreground="{DynamicResource Fluent.TextTertiary}"
+                                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+                                <WrapPanel Margin="16,4,16,16">
+                                    <Button Style="{StaticResource FluentSubtleButton}" Click="OnThemePreset" Tag="System"
+                                            Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
+                                        <StackPanel>
+                                            <Border x:Name="ThemeBd_System" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
+                                                <Border CornerRadius="2" Height="36">
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                            <GradientStop Color="#E9FAFBFC" Offset="0.5"/>
+                                                            <GradientStop Color="#CC212124" Offset="0.5"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
+                                                               FontWeight="SemiBold" FontSize="14"
+                                                               Foreground="{DynamicResource Fluent.TextPrimary}"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </Border>
+                                            <TextBlock Text="跟随系统" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource Fluent.TextSecondary}"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource FluentSubtleButton}" Click="OnThemePreset" Tag="Light"
+                                            Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
+                                        <StackPanel>
+                                            <Border x:Name="ThemeBd_Light" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
+                                                <Border CornerRadius="2" Height="36" Background="#E9FAFBFC">
+                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
+                                                               FontWeight="SemiBold" FontSize="14" Foreground="#FF1B1B1B"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </Border>
+                                            <TextBlock Text="浅色" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource Fluent.TextSecondary}"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource FluentSubtleButton}" Click="OnThemePreset" Tag="Dark"
+                                            Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
+                                        <StackPanel>
+                                            <Border x:Name="ThemeBd_Dark" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
+                                                <Border CornerRadius="2" Height="36" Background="#FF212124">
+                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
+                                                               FontWeight="SemiBold" FontSize="14" Foreground="#FFF3F5F8"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </Border>
+                                            <TextBlock Text="深色" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource Fluent.TextSecondary}"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource FluentSubtleButton}" Click="OnThemePreset" Tag="HighContrast"
+                                            Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
+                                        <StackPanel>
+                                            <Border x:Name="ThemeBd_HighContrast" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
+                                                <Border CornerRadius="2" Height="36" Background="#FF000000">
+                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
+                                                               FontWeight="SemiBold" FontSize="14" Foreground="#FFFFE000"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </Border>
+                                            <TextBlock Text="高对比" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource Fluent.TextSecondary}"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource FluentSubtleButton}" Click="OnThemePreset" Tag="MistBlue"
+                                            Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
+                                        <StackPanel>
+                                            <Border x:Name="ThemeBd_MistBlue" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
+                                                <Border CornerRadius="2" Height="36" Background="#FFDCE9F5">
+                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
+                                                               FontWeight="SemiBold" FontSize="14" Foreground="#FF2A4158"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </Border>
+                                            <TextBlock Text="雾蓝" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource Fluent.TextSecondary}"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource FluentSubtleButton}" Click="OnThemePreset" Tag="WarmSand"
+                                            Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
+                                        <StackPanel>
+                                            <Border x:Name="ThemeBd_WarmSand" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
+                                                <Border CornerRadius="2" Height="36" Background="#FFF2E4D2">
+                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
+                                                               FontWeight="SemiBold" FontSize="14" Foreground="#FF5C4326"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </Border>
+                                            <TextBlock Text="暖砂" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource Fluent.TextSecondary}"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource FluentSubtleButton}" Click="OnThemePreset" Tag="Glass"
+                                            Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
+                                        <StackPanel>
+                                            <Border x:Name="ThemeBd_Glass" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
+                                                <Border CornerRadius="2" Height="36" Background="#99FFFFFF">
+                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
+                                                               FontWeight="SemiBold" FontSize="14" Foreground="#FF33343D"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </Border>
+                                            <TextBlock Text="玻璃" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource Fluent.TextSecondary}"/>
+                                        </StackPanel>
+                                    </Button>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 颜色 -->
+                        <Border Style="{StaticResource FluentCard}" Margin="0,16,0,0">
+                            <StackPanel>
+                                <Grid Margin="16,0" Height="46">
+                                    <TextBlock Text="颜色" Style="{StaticResource FluentRowTitle}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="手动修改后不再跟随主题预设" FontSize="12"
+                                               Foreground="{DynamicResource Fluent.TextTertiary}"
+                                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsRow}" BorderThickness="0">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE790;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="背景色" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="支持透明度（ARGB）" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Style="{StaticResource ControlCol}">
+                                            <Button Style="{StaticResource FluentSubtleButton}" Padding="2" Click="OnPickBackground">
+                                                <Border x:Name="BgSwatch" Width="44" Height="24" CornerRadius="4"
+                                                        BorderBrush="{DynamicResource Fluent.ControlBorder}" BorderThickness="1"/>
+                                            </Button>
+                                            <TextBox x:Name="BgColorBox" Width="112" Margin="10,0,0,0" FontSize="12.5"
+                                                     TextChanged="OnColorTextChanged"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE790;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="文字色" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="时间与城市名" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Style="{StaticResource ControlCol}">
+                                            <Button Style="{StaticResource FluentSubtleButton}" Padding="2" Click="OnPickForeground">
+                                                <Border x:Name="FgSwatch" Width="44" Height="24" CornerRadius="4"
+                                                        BorderBrush="{DynamicResource Fluent.ControlBorder}" BorderThickness="1"/>
+                                            </Button>
+                                            <TextBox x:Name="FgColorBox" Width="112" Margin="10,0,0,0" FontSize="12.5"
+                                                     TextChanged="OnColorTextChanged"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE790;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="分隔符色" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="城市之间的竖线" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Style="{StaticResource ControlCol}">
+                                            <Button Style="{StaticResource FluentSubtleButton}" Padding="2" Click="OnPickSeparator">
+                                                <Border x:Name="SepSwatch" Width="44" Height="24" CornerRadius="4"
+                                                        BorderBrush="{DynamicResource Fluent.ControlBorder}" BorderThickness="1"/>
+                                            </Button>
+                                            <TextBox x:Name="SepColorBox" Width="112" Margin="10,0,0,0" FontSize="12.5"
+                                                     TextChanged="OnColorTextChanged"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 字体与尺寸 -->
+                        <Border Style="{StaticResource FluentCard}" Margin="0,16,0,0">
+                            <StackPanel>
+                                <Border Style="{StaticResource SettingsRow}" BorderThickness="0">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE8D2;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="字体" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="推荐 Segoe UI Variable Display" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="2" x:Name="FontFamilyBox" Width="240"
+                                                  SelectionChanged="OnFontChanged"/>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE8D2;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="字号" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="时间主体字号" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Style="{StaticResource ControlCol}" Width="240">
+                                            <Slider x:Name="FontSizeSlider" Minimum="10" Maximum="28" IsSnapToTickEnabled="True"
+                                                    TickFrequency="1" Width="196" ValueChanged="OnSizeSliderChanged"/>
+                                            <TextBlock x:Name="FontSizeValue" Width="32" Margin="12,0,0,0"
+                                                       TextAlignment="Center" Style="{StaticResource FluentRowTitle}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE7EB;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="条高" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="时钟条整体高度" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Style="{StaticResource ControlCol}" Width="240">
+                                            <Slider x:Name="HeightSlider" Minimum="22" Maximum="56" IsSnapToTickEnabled="True"
+                                                    TickFrequency="1" Width="196" ValueChanged="OnSizeSliderChanged"/>
+                                            <TextBlock x:Name="HeightValue" Width="32" Margin="12,0,0,0"
+                                                       TextAlignment="Center" Style="{StaticResource FluentRowTitle}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE7EB;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="圆角" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="0 为直角" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Style="{StaticResource ControlCol}" Width="240">
+                                            <Slider x:Name="RadiusSlider" Minimum="0" Maximum="16" IsSnapToTickEnabled="True"
+                                                    TickFrequency="1" Width="196" ValueChanged="OnSizeSliderChanged"/>
+                                            <TextBlock x:Name="RadiusValue" Width="32" Margin="12,0,0,0"
+                                                       TextAlignment="Center" Style="{StaticResource FluentRowTitle}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE7B3;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="透明度" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="配合亚克力材质更通透" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Style="{StaticResource ControlCol}" Width="240">
+                                            <Slider x:Name="OpacitySlider" Minimum="0.3" Maximum="1.0" Width="196"
+                                                    ValueChanged="OnSizeSliderChanged"/>
+                                            <TextBlock x:Name="OpacityValue" Width="36" Margin="8,0,0,0"
+                                                       TextAlignment="Center" Style="{StaticResource FluentRowTitle}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ================= 行为 ================= -->
+                <ScrollViewer x:Name="PageBehavior" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
+                              Padding="0,0,8,0">
+                    <StackPanel Margin="4,6,18,26">
+                        <TextBlock Text="行为" Style="{StaticResource FluentPageTitle}" Margin="0,8,0,4"/>
+                        <TextBlock Text="启动与显示行为。" Style="{StaticResource FluentPageSub}"/>
+
+                        <Border Style="{StaticResource FluentCard}" Margin="0,20,0,0">
+                            <StackPanel>
+                                <Border Style="{StaticResource SettingsRow}" BorderThickness="0">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE7E8;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="开机自动启动" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="写入当前用户的启动项（注册表 Run）" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <CheckBox Grid.Column="2" x:Name="AutoStartSwitch"
+                                                  Checked="OnAutoStartChanged" Unchecked="OnAutoStartChanged"/>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE718;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="始终置顶" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="始终开启，每秒自动巩固 Z 序（全屏独占游戏除外）" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="2" CornerRadius="99" Padding="10,3"
+                                                Background="{DynamicResource Fluent.RowSelected}">
+                                            <TextBlock Text="始终开启" FontSize="11.5"
+                                                       Foreground="{DynamicResource Fluent.TextSecondary}"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource FluentCard}" Margin="0,16,0,0">
+                            <StackPanel>
+                                <Border Style="{StaticResource SettingsRow}" BorderThickness="0">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE946;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="不访问网络" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="所有时间按本机系统时钟 + TimeZoneInfo 换算" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE946;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="不注入系统任务栏" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="独立置顶窗口贴在任务栏上方，与常见任务栏插件冲突风险低" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ================= 关于 ================= -->
+                <ScrollViewer x:Name="PageAbout" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
+                              Padding="0,0,8,0">
+                    <StackPanel Margin="4,6,18,26">
+                        <TextBlock Text="关于" Style="{StaticResource FluentPageTitle}" Margin="0,8,0,4"/>
+                        <TextBlock Text="WorldClockBar — 任务栏上方的多时区时钟条。" Style="{StaticResource FluentPageSub}"/>
+
+                        <Border Style="{StaticResource FluentCard}" Margin="0,20,0,0">
+                            <StackPanel>
+                                <Border Style="{StaticResource SettingsRow}" BorderThickness="0">
+                                    <Grid Style="{StaticResource RowContent}" Margin="0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="56"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="40" Height="40" CornerRadius="8" Background="{DynamicResource Fluent.Accent}">
+                                            <TextBlock Text="&#xE823;" FontFamily="{StaticResource Fluent.IconFont}" FontSize="20"
+                                                       Foreground="{DynamicResource Fluent.AccentText}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                                            <TextBlock Text="WorldClockBar" Style="{StaticResource FluentRowTitle}" FontSize="16"/>
+                                            <TextBlock x:Name="AboutVersion" FontSize="12" Margin="0,3,0,0"
+                                                       Foreground="{DynamicResource Fluent.TextSecondary}"/>
+                                            <TextBlock FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource Fluent.TextSecondary}"
+                                                       Text="MIT 许可证 · 本地换算，不联网，不注入任务栏。"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE8A5;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="项目主页" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="github.com/FeamCoco/FloatClock" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="2" Content="打开" Style="{StaticResource FluentSubtleButton}"
+                                                Padding="14,5" Click="OnOpenHomepage"/>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE8B7;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="配置文件" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock x:Name="ConfigPathText" FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,0"
+                                                       Foreground="{DynamicResource Fluent.TextTertiary}"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="2" Content="打开文件夹" Style="{StaticResource FluentSubtleButton}"
+                                                Padding="14,5" Click="OnOpenConfigFolder"/>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsRow}">
+                                    <Grid Style="{StaticResource RowContent}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE72C;" Style="{StaticResource FluentRowIcon}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="重置为默认配置" Style="{StaticResource FluentRowTitle}"/>
+                                            <TextBlock Text="恢复默认城市、主题与位置" Style="{StaticResource RowDescText}"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="2" Content="重置" Style="{StaticResource FluentSubtleButton}"
+                                                Padding="14,5" Click="OnResetDefaults"
+                                                Foreground="{DynamicResource Fluent.Error}"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+
+        <!-- transient save-status pill -->
+        <Border x:Name="StatusPill" Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                Margin="0,0,22,16" CornerRadius="99" Padding="13,6"
+                Background="{DynamicResource Fluent.SurfaceSolid}"
+                BorderBrush="{DynamicResource Fluent.CardBorder}" BorderThickness="1"
+                Effect="{StaticResource Fluent.TooltipShadow}" Visibility="Collapsed">
+            <TextBlock x:Name="StatusText" FontSize="12" Foreground="{DynamicResource Fluent.TextSecondary}"/>
+        </Border>
+    </Grid>
 </Window>

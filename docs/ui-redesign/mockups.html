@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WorldClockBar · WinUI 风格重设计 — 三方案预览</title>
+<style>
+/* ============================== base ============================== */
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{
+  font-family:"Segoe UI Variable Text","Segoe UI","Microsoft YaHei UI",sans-serif;
+  background:linear-gradient(180deg,#eef1f6,#e6eaf1);
+  color:#1b1b1b;padding:48px 24px 80px;
+}
+.wrap{max-width:1100px;margin:0 auto}
+.glyph{font-family:"Segoe Fluent Icons","Segoe MDL2 Assets";font-weight:400;font-style:normal;line-height:1}
+code{font-family:Consolas,monospace;font-size:.92em;background:rgba(0,0,0,.06);padding:1px 6px;border-radius:4px}
+a{color:#0067c0}
+
+/* ============================== hero ============================== */
+.hero{padding:12px 8px 36px}
+.hero-kicker{font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#0067c0;margin-bottom:10px}
+.hero h1{font-family:"Segoe UI Variable Display","Segoe UI Semibold","Segoe UI",sans-serif;font-size:34px;font-weight:600;letter-spacing:-.01em}
+.hero-sub{margin-top:12px;font-size:15px;line-height:1.75;color:#3b4450;max-width:820px}
+.hero-chips{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.chip{font-size:12px;padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.85);border:1px solid rgba(0,0,0,.08);color:#41495a}
+
+/* ============================== proposal card ============================== */
+.proposal{background:#fff;border-radius:14px;padding:34px 36px 30px;margin:0 0 34px;box-shadow:0 2px 10px rgba(15,25,40,.06),0 12px 40px rgba(15,25,40,.05)}
+.p-head{display:flex;align-items:flex-start;gap:18px;margin-bottom:6px}
+.p-tag{flex:0 0 auto;font-size:13px;font-weight:700;color:#fff;background:var(--tc,#0067c0);padding:7px 14px;border-radius:8px;letter-spacing:.04em}
+.p-head h2{font-family:"Segoe UI Variable Display","Segoe UI Semibold","Segoe UI",sans-serif;font-size:24px;font-weight:600}
+.p-sub{margin-top:5px;font-size:14px;color:#5a6472;line-height:1.6}
+.p-cost{margin-left:auto;flex:0 0 auto;font-size:12.5px;color:#5a6472;background:#f3f5f9;border:1px solid rgba(0,0,0,.07);border-radius:8px;padding:7px 12px}
+.p-cost b{font-size:14px}
+.feat-chips{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 24px}
+.feat-chips .chip{background:#f6f8fb}
+
+h3.blk{font-size:14px;font-weight:700;color:#41495a;margin:26px 0 12px;display:flex;align-items:center;gap:8px}
+h3.blk::before{content:"";width:4px;height:15px;border-radius:2px;background:var(--tc,#0067c0)}
+
+/* ============================== desktop scene ============================== */
+.scenes{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.scene{border-radius:12px;overflow:hidden;position:relative;height:400px;box-shadow:inset 0 0 0 1px rgba(10,20,40,.14)}
+.scene.light-wall{background:
+  radial-gradient(1100px 520px at 72% 22%, rgba(255,222,170,.85) 0%, rgba(255,222,170,0) 60%),
+  radial-gradient(900px 540px at 22% 78%, rgba(140,190,255,.7) 0%, rgba(140,190,255,0) 62%),
+  linear-gradient(158deg,#9fc0e6 0%,#6f9bd3 55%,#547dbb 100%)}
+.scene.dark-wall{background:
+  radial-gradient(1000px 520px at 76% 20%, rgba(40,90,150,.75) 0%, rgba(40,90,150,0) 60%),
+  radial-gradient(860px 500px at 18% 82%, rgba(96,52,150,.55) 0%, rgba(96,52,150,0) 62%),
+  linear-gradient(158deg,#0e1828 0%,#101c30 55%,#0a1120 100%)}
+.taskbar{position:absolute;left:0;right:0;bottom:0;height:48px;display:flex;align-items:center;justify-content:center}
+.scene.light-wall .taskbar{background:rgba(243,243,243,.82);backdrop-filter:blur(22px) saturate(1.4);border-top:1px solid rgba(255,255,255,.55);box-shadow:0 -1px 0 rgba(0,0,0,.04)}
+.scene.dark-wall .taskbar{background:rgba(26,26,28,.78);backdrop-filter:blur(22px) saturate(1.3);border-top:1px solid rgba(255,255,255,.09)}
+.tb-center{display:flex;gap:6px;align-items:center}
+.tb-icon{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.scene.light-wall .tb-icon{color:#24292f}
+.scene.dark-wall .tb-icon{color:#f0f3f7}
+.tb-icon.hov{background:rgba(0,0,0,.055)}
+.scene.dark-wall .tb-icon.hov{background:rgba(255,255,255,.09)}
+.winlogo{display:grid;grid-template-columns:7px 7px;grid-template-rows:7px 7px;gap:2px}
+.winlogo i{background:#0886d8;border-radius:1px}
+.winlogo i:nth-child(2),.winlogo i:nth-child(4){border-radius:1px 3px 1px 1px}
+.searchc{width:32px;height:32px;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.scene.light-wall .searchc{background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.scene.dark-wall .searchc{background:rgba(255,255,255,.08)}
+.tb-tray{position:absolute;right:10px;top:0;bottom:0;display:flex;align-items:center;gap:11px;font-size:12px}
+.scene.light-wall .tb-tray{color:#24292f}
+.scene.dark-wall .tb-tray{color:#eef2f7}
+.tb-tray .tsm{font-size:10px;opacity:.75}
+.tb-clock{display:flex;flex-direction:column;align-items:flex-end;line-height:1.4;font-size:12px}
+
+/* ---------- 方案 A 时钟条 ---------- */
+.barA{position:absolute;right:14px;bottom:62px;display:flex;align-items:center;height:40px;padding:0 8px;border-radius:8px;color:#1b1b1b}
+.barA.lt{background:rgba(250,250,251,.78);backdrop-filter:blur(26px) saturate(1.6);box-shadow:0 6px 18px rgba(10,25,50,.18),0 1px 3px rgba(10,25,50,.12)}
+.barA.dk{background:rgba(34,34,37,.74);color:#f3f5f8;backdrop-filter:blur(26px) saturate(1.4);box-shadow:0 8px 22px rgba(0,0,0,.5)}
+.barA .city{display:flex;align-items:baseline;gap:8px;padding:0 12px;position:relative;border-radius:6px;height:100%;align-items:center}
+.barA .city.hov{background:rgba(0,0,0,.06)}
+.barA.dk .city.hov{background:rgba(255,255,255,.09)}
+.barA .city+.city::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:1px;background:rgba(0,0,0,.14)}
+.barA.dk .city+.city::before{background:rgba(255,255,255,.16)}
+.barA .name{font-size:12px;color:rgba(0,0,0,.58)}
+.barA.dk .name{color:rgba(255,255,255,.62)}
+.barA .time{font-family:"Segoe UI Variable Display","Segoe UI",sans-serif;font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.barA .sec{opacity:.52;font-weight:500}
+
+/* ---------- 方案 B 时钟条 ---------- */
+.barB{position:absolute;right:14px;bottom:60px;display:flex;gap:6px;align-items:stretch;padding:8px;border-radius:10px;color:#1b1b1b}
+.barB.lt{background:rgba(250,250,252,.8);backdrop-filter:blur(30px) saturate(1.6);box-shadow:0 14px 36px rgba(10,25,50,.24),0 2px 6px rgba(10,25,50,.12)}
+.barB.dk{background:rgba(32,32,36,.76);color:#f3f5f8;backdrop-filter:blur(30px) saturate(1.4);box-shadow:0 14px 36px rgba(0,0,0,.55)}
+.barB .tile{padding:5px 13px 7px;border-radius:7px;min-width:88px}
+.barB .tile.hov{background:rgba(0,0,0,.07)}
+.barB.dk .tile.hov{background:rgba(255,255,255,.09)}
+.barB .n{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:rgba(0,0,0,.6)}
+.barB.dk .n{color:rgba(255,255,255,.62)}
+.barB .off{font-size:10px;font-weight:600;padding:1px 7px;border-radius:99px;background:rgba(0,103,192,.14);color:#0067c0;margin-left:8px}
+.barB.dk .off{background:rgba(76,194,255,.18);color:#4cc2ff}
+.barB .t{font-family:"Segoe UI Variable Display","Segoe UI",sans-serif;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px;letter-spacing:.01em}
+.barB .s{opacity:.5;font-weight:500;font-size:15px}
+.barB .gear{width:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;background:rgba(0,0,0,.07);color:rgba(0,0,0,.65)}
+.barB.dk .gear{background:rgba(255,255,255,.09);color:rgba(255,255,255,.7)}
+
+/* ---------- 方案 C 时钟条 ---------- */
+.barC{position:absolute;right:22px;bottom:66px;display:flex;gap:30px;align-items:baseline;padding:8px 14px;border-radius:8px}
+.barC.lt-tx{color:rgba(255,255,255,.95);text-shadow:0 1px 10px rgba(5,12,25,.55)}
+.barC.dk-tx{color:rgba(16,24,38,.95);text-shadow:0 1px 8px rgba(255,255,255,.35)}
+.barC .cg{display:flex;align-items:baseline;gap:9px}
+.barC .name{font-size:12.5px;font-weight:300;opacity:.62;letter-spacing:.06em}
+.barC .time{font-family:"Segoe UI Variable Display","Segoe UI Light","Segoe UI",sans-serif;font-size:23px;font-weight:300;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.barC .sec{font-size:12px;font-weight:400;opacity:.42;margin-left:2px}
+.cap{margin-top:10px;font-size:13px;color:#5a6472;display:flex;gap:8px;align-items:flex-start;line-height:1.5}
+.cap i{flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:#9aa4b2;margin-top:7px}
+
+/* ============================== 窗口公共 ============================== */
+.win{border-radius:9px;overflow:hidden;box-shadow:0 24px 64px rgba(10,20,40,.22),0 2px 8px rgba(10,20,40,.1);border:1px solid rgba(0,0,0,.1)}
+.win.dk{border-color:rgba(255,255,255,.12)}
+.titlebar{height:42px;display:flex;align-items:center;padding-left:14px;gap:10px}
+.titlebar .appic{width:16px;height:16px;border-radius:4px;background:linear-gradient(135deg,#0f86d8,#0058a8);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff}
+.titlebar .t{font-size:12.5px;flex:1}
+.wbtns{display:flex;height:100%}
+.wbtn{width:46px;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px}
+.wbtn.close{font-size:10px}
+
+/* ============================== 方案 A 设置 ============================== */
+.setA{display:flex;height:648px;background:#f3f3f3;color:#1b1b1b}
+.setA.dk{background:#202020;color:#fff}
+.setA .nav{width:216px;padding:10px;background:rgba(255,255,255,.6);border-right:1px solid rgba(0,0,0,.05)}
+.setA.dk .nav{background:rgba(255,255,255,.035);border-right-color:rgba(255,255,255,.06)}
+.nav .searchbox{height:34px;border-radius:5px;display:flex;align-items:center;gap:9px;padding:0 11px;font-size:13px;color:rgba(0,0,0,.5);background:rgba(255,255,255,.8);box-shadow:inset 0 0 0 1px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);margin-bottom:10px}
+.setA.dk .nav .searchbox{background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.nav .searchbox .glyph{font-size:13px}
+.nitem{display:flex;gap:13px;align-items:center;height:37px;padding:0 13px;border-radius:5px;font-size:14px;position:relative;color:rgba(0,0,0,.78)}
+.setA.dk .nitem{color:rgba(255,255,255,.78)}
+.nitem .glyph{font-size:16px;opacity:.85}
+.nitem.active{background:rgba(0,0,0,.055);font-weight:600;color:#1b1b1b}
+.setA.dk .nitem.active{background:rgba(255,255,255,.075);color:#fff}
+.nitem.active::before{content:"";position:absolute;left:0;top:9px;width:3px;height:19px;border-radius:2px;background:var(--acc,#0067c0)}
+.setA.dk .nitem.active::before{background:#4cc2ff}
+.nav .spacer{flex:1}
+.nav .ver{font-size:11px;color:rgba(0,0,0,.4);padding:0 13px}
+.setA.dk .nav .ver{color:rgba(255,255,255,.38)}
+.setA .content{flex:1;padding:22px 30px;overflow:hidden}
+.page-h1{font-family:"Segoe UI Variable Display","Segoe UI",sans-serif;font-size:26px;font-weight:600}
+.page-sub{font-size:12.5px;color:rgba(0,0,0,.55);margin:4px 0 18px}
+.setA.dk .page-sub{color:rgba(255,255,255,.55)}
+.card{background:rgba(255,255,255,.8);border:1px solid rgba(0,0,0,.055);border-radius:5px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.setA.dk .card{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.075);box-shadow:none}
+.row{display:flex;align-items:center;gap:14px;padding:10px 16px;min-height:56px}
+.row+.row{border-top:1px solid rgba(0,0,0,.05)}
+.setA.dk .row+.row{border-top-color:rgba(255,255,255,.06)}
+.row .ric{font-size:17px;width:28px;text-align:center;opacity:.8;flex:0 0 auto}
+.row .rt{font-size:14px}
+.row .rd{font-size:12px;color:rgba(0,0,0,.55);margin-top:2px}
+.setA.dk .row .rd{color:rgba(255,255,255,.55)}
+.row .rctl{margin-left:auto;display:flex;align-items:center;gap:6px}
+.morebtn{width:30px;height:30px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:14px;color:rgba(0,0,0,.6)}
+.setA.dk .morebtn{color:rgba(255,255,255,.6)}
+.addrow{color:#0067c0;font-size:13.5px;font-weight:600;min-height:44px;gap:10px;padding:10px 16px;display:flex;align-items:center}
+.setA.dk .addrow{color:#4cc2ff}
+.addrow .glyph{font-size:13px}
+/* toggle */
+.tgl{width:40px;height:20px;border-radius:10px;background:rgba(0,0,0,.34);position:relative;flex:0 0 auto}
+.tgl::after{content:"";position:absolute;top:4px;left:4px;width:12px;height:12px;border-radius:50%;background:#f5f5f5;box-shadow:0 1px 2px rgba(0,0,0,.35);transition:.16s}
+.tgl.on{background:#0067c0}
+.setA.dk .tgl.on,.win.dk .tgl.on,.flyout.dk .tgl.on{background:#4cc2ff}
+.tgl.on::after{left:24px;top:3px;width:14px;height:14px}
+/* combobox */
+.combo{height:32px;border-radius:5px;padding:0 12px;display:flex;align-items:center;gap:18px;font-size:13.5px;background:rgba(255,255,255,.85);box-shadow:inset 0 0 0 1px rgba(0,0,0,.11);color:#1b1b1b}
+.setA.dk .combo,.win.dk .combo{background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);color:#fff}
+.combo .glyph{font-size:10px;opacity:.7}
+.combo.wide{width:220px;justify-content:space-between}
+
+/* ============================== 方案 B 浮层 ============================== */
+.flywrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.flyout{width:372px;border-radius:9px;padding:14px;position:relative;box-shadow:0 18px 48px rgba(10,20,40,.28);border:1px solid rgba(0,0,0,.09);background:rgba(250,250,252,.88);backdrop-filter:blur(30px) saturate(1.5);color:#1b1b1b}
+.flyout.dk{background:rgba(34,34,39,.88);border-color:rgba(255,255,255,.1);color:#f2f4f8}
+.flyout::before{content:"";position:absolute;top:-6px;left:36px;width:11px;height:11px;transform:rotate(45deg);background:inherit;border-left:1px solid rgba(0,0,0,.09);border-top:1px solid rgba(0,0,0,.09)}
+.flyout.dk::before{border-color:rgba(255,255,255,.1)}
+.fly-head{display:flex;align-items:center;padding:2px 4px 10px}
+.fly-head .t{font-size:15px;font-weight:600;flex:1}
+.fly-head .gear{width:30px;height:30px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:13px;opacity:.75}
+.qtgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.qt{height:64px;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:11.5px;background:rgba(0,0,0,.055)}
+.flyout.dk .qt{background:rgba(255,255,255,.065)}
+.qt .glyph{font-size:17px}
+.qt.on{background:#0067c0;color:#fff}
+.flyout.dk .qt.on{background:#4cc2ff;color:#00304a}
+.fly-div{height:1px;background:rgba(0,0,0,.07);margin:12px 2px}
+.flyout.dk .fly-div{background:rgba(255,255,255,.08)}
+.fly-label{font-size:12px;font-weight:600;color:rgba(0,0,0,.55);padding:0 4px 8px;display:flex;align-items:center;justify-content:space-between}
+.flyout.dk .fly-label{color:rgba(255,255,255,.55)}
+.fly-label .mini{font-size:11.5px;font-weight:400;opacity:.8}
+.frow{display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:6px;font-size:13.5px}
+.frow .grip{font-size:12px;opacity:.4;letter-spacing:-1px}
+.frow .fn{flex:1}
+.frow .ft{font-variant-numeric:tabular-nums;font-size:13px;opacity:.75}
+.frow.hov{background:rgba(0,0,0,.06)}
+.flyout.dk .frow.hov{background:rgba(255,255,255,.08)}
+.fly-foot{display:flex;align-items:center;gap:8px;color:#0067c0;font-size:13.5px;font-weight:600;padding:10px 4px 2px}
+.flyout.dk .fly-foot{color:#4cc2ff}
+.fly-foot .glyph{font-size:12px;margin-left:auto}
+
+/* ============================== 方案 B 大窗（Pivot） ============================== */
+.winB{background:#f9f9f9;color:#1b1b1b}
+.winB.dk{background:#232323;color:#fff}
+.pv{display:flex;gap:26px;padding:2px 24px 0;border-bottom:1px solid rgba(0,0,0,.08)}
+.winB.dk .pv{border-bottom-color:rgba(255,255,255,.08)}
+.pv span{padding:11px 2px 9px;font-size:14px;position:relative;color:rgba(0,0,0,.6)}
+.winB.dk .pv span{color:rgba(255,255,255,.6)}
+.pv .on{font-weight:600;color:#1b1b1b}
+.winB.dk .pv .on{color:#fff}
+.pv .on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:2px;background:#0067c0}
+.winB.dk .pv .on::after{background:#4cc2ff}
+.winB .body{padding:16px 24px 20px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* ============================== 方案 C 设置 ============================== */
+.winC{background:#fbfbfd;color:#1b1b1b;width:560px;margin:0 auto}
+.winC.dk{background:#1f1f22;color:#fff}
+.winC .body{padding:6px 28px 26px}
+.winC .h1{font-family:"Segoe UI Variable Display","Segoe UI",sans-serif;font-size:22px;font-weight:600;margin:12px 0 12px}
+.winC .searchbox{height:36px;border-radius:6px;display:flex;align-items:center;gap:10px;padding:0 12px;font-size:13px;background:rgba(255,255,255,.9);box-shadow:inset 0 0 0 1px rgba(0,0,0,.09);color:rgba(0,0,0,.45)}
+.winC.dk .searchbox{background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);color:rgba(255,255,255,.5)}
+.sect{font-size:12.5px;font-weight:700;letter-spacing:.02em;color:rgba(0,0,0,.5);margin:20px 0 10px;display:flex;justify-content:space-between;align-items:baseline}
+.winC.dk .sect{color:rgba(255,255,255,.5)}
+.sect a{font-size:12px;font-weight:600;text-decoration:none}
+.swgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.sw{border-radius:7px;padding:8px;position:relative;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.winC.dk .sw{background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.sw.sel{box-shadow:inset 0 0 0 2px #0067c0}
+.winC.dk .sw.sel{box-shadow:inset 0 0 0 2px #4cc2ff}
+.sw .prev{height:40px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;margin-bottom:7px}
+.sw .lbl{font-size:12.5px;display:flex;align-items:center;justify-content:space-between;padding:0 2px}
+.sw .ck{font-size:12px;color:#0067c0}
+.winC.dk .sw .ck{color:#4cc2ff}
+.seg{display:inline-flex;background:rgba(0,0,0,.055);border-radius:6px;padding:2px;gap:2px}
+.winC.dk .seg{background:rgba(255,255,255,.07)}
+.seg span{padding:5px 13px;font-size:12.5px;border-radius:4px;color:rgba(0,0,0,.65)}
+.winC.dk .seg span{color:rgba(255,255,255,.65)}
+.seg .on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.16);font-weight:600;color:#1b1b1b}
+.winC.dk .seg .on{background:rgba(255,255,255,.16);color:#fff}
+.sldrow{display:flex;align-items:center;gap:14px}
+.sld{width:210px;height:20px;position:relative;flex:0 0 auto}
+.sld .tr{position:absolute;top:9px;left:0;right:0;height:2px;border-radius:1px;background:rgba(0,0,0,.22)}
+.winC.dk .sld .tr{background:rgba(255,255,255,.25)}
+.sld .fl{position:absolute;top:9px;left:0;width:62%;height:2px;border-radius:1px;background:#0067c0}
+.winC.dk .sld .fl{background:#4cc2ff}
+.sld .th{position:absolute;top:4px;left:62%;margin-left:-7px;width:14px;height:14px;border-radius:50%;background:#0067c0;box-shadow:0 0 0 4px rgba(0,103,192,.18)}
+.winC.dk .sld .th{background:#4cc2ff;box-shadow:0 0 0 4px rgba(76,194,255,.2)}
+.sldval{font-variant-numeric:tabular-nums;font-size:13px;width:26px;text-align:right}
+
+/* ============================== notes / pros cons ============================== */
+.acts{margin:14px 0 4px 0;list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px 22px}
+.acts li{font-size:13.5px;color:#3b4450;line-height:1.55;padding-left:16px;position:relative}
+.acts li::before{content:"";position:absolute;left:2px;top:8px;width:5px;height:5px;border-radius:50%;background:var(--tc,#0067c0)}
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+.box{border-radius:10px;padding:16px 18px;font-size:13.5px;line-height:1.7}
+.box h4{font-size:12px;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.box.good{background:#f0f9f1;color:#244d2a}
+.box.good h4{color:#1b7a2c}
+.box.bad{background:#fdf2f2;color:#5e2a2a}
+.box.bad h4{color:#b34141}
+.box .glyph{font-size:13px}
+
+/* ============================== 对比表 ============================== */
+.cmp{background:#fff;border-radius:14px;padding:34px 36px;box-shadow:0 2px 10px rgba(15,25,40,.06),0 12px 40px rgba(15,25,40,.05)}
+.cmp h2{font-family:"Segoe UI Variable Display","Segoe UI Semibold","Segoe UI",sans-serif;font-size:24px;font-weight:600;margin-bottom:18px}
+.cmp table{width:100%;border-collapse:collapse;font-size:13.5px}
+.cmp th{font-size:12px;letter-spacing:.05em;color:#5a6472;text-align:left;padding:10px 12px;border-bottom:2px solid #e3e7ee}
+.cmp th:first-child{width:110px}
+.cmp td{padding:12px;border-bottom:1px solid #eceff4;vertical-align:top;line-height:1.6;color:#333c48}
+.cmp td:first-child{font-weight:700;color:#1b1b1b;white-space:nowrap}
+.cmp td b{color:#1b1b1b}
+.foot{margin-top:26px;font-size:13px;color:#5a6472;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+  <div class="hero-kicker">WorldClockBar · UI Redesign Proposal</div>
+  <h1>向 Windows 11 / WinUI 靠齐的三套方案</h1>
+  <p class="hero-sub">三套方案共享同一套 Fluent 设计基础：<b>跟随系统深浅色与强调色、Mica / Acrylic 材质、Segoe UI Variable 字体、4px 网格圆角与细腻动画</b>。差异集中在两处——<b>时钟条的形态</b>与<b>设置窗口的信息架构</b>。以下为高保真静态预览（浏览器直接渲染），逐条规格见同目录 <code>design-proposals.md</code>。本页不含任何项目代码改动。</p>
+  <div class="hero-chips">
+    <span class="chip">Mica / Acrylic 材质</span><span class="chip">Segoe UI Variable</span><span class="chip">跟随系统深浅色</span><span class="chip">系统强调色</span><span class="chip">设置即时生效</span><span class="chip">Win10 自动降级</span>
+  </div>
+</header>
+
+<!-- ================= 方案 A ================= -->
+<section class="proposal" id="pa" style="--tc:#0067c0">
+  <div class="p-head">
+    <div class="p-tag">方案 A</div>
+    <div>
+      <h2>原生延伸 —— 像系统自带的功能</h2>
+      <p class="p-sub">时钟条是任务栏的自然延伸（Acrylic 细长条 + 竖线分隔）；设置窗口 1:1 复刻 Windows 11 设置应用：NavigationView 左导航 + 圆角卡片分组 + 行式控件。</p>
+    </div>
+    <div class="p-cost">实现成本 <b>高</b></div>
+  </div>
+  <div class="feat-chips">
+    <span class="chip">Acrylic 单行条</span><span class="chip">Win11 设置式卡片</span><span class="chip">NavigationView</span><span class="chip">⋮ 行菜单</span><span class="chip">即时生效</span>
+  </div>
+
+  <h3 class="blk">时钟条预览（任务栏上方）</h3>
+  <div class="scenes">
+    <div>
+      <div class="scene light-wall">
+        <div class="taskbar">
+          <div class="tb-center">
+            <div class="tb-icon hov"><span class="winlogo"><i></i><i></i><i></i><i></i></span></div>
+            <div class="tb-icon searchc glyph">&#xE721;</div>
+            <div class="tb-icon glyph">&#xE8B7;</div>
+            <div class="tb-icon glyph">&#xE774;</div>
+            <div class="tb-icon glyph">&#xE713;</div>
+          </div>
+          <div class="tb-tray">
+            <span class="glyph tsm">&#xE70E;</span><span>ENG</span>
+            <span class="glyph">&#xE701;</span><span class="glyph">&#xE767;</span>
+            <div class="tb-clock"><span>2026/08/29</span><span>20:15:33</span></div>
+          </div>
+        </div>
+        <div class="barA lt">
+          <div class="city hov"><span class="name">北京</span><span class="time">20:15<span class="sec">:33</span></span></div>
+          <div class="city"><span class="name">伦敦</span><span class="time">13:15<span class="sec">:33</span></span></div>
+          <div class="city"><span class="name">纽约</span><span class="time">08:15<span class="sec">:33</span></span></div>
+          <div class="city"><span class="name">东京</span><span class="time">21:15<span class="sec">:33</span></span></div>
+        </div>
+      </div>
+      <p class="cap"><i></i>浅色系统 · Acrylic 条与任务栏同高呼应，「北京」hover 出现圆角高亮，秒数弱化 52% 不抢眼</p>
+    </div>
+    <div>
+      <div class="scene dark-wall">
+        <div class="taskbar">
+          <div class="tb-center">
+            <div class="tb-icon"><span class="winlogo"><i></i><i></i><i></i><i></i></span></div>
+            <div class="tb-icon searchc glyph">&#xE721;</div>
+            <div class="tb-icon glyph">&#xE8B7;</div>
+            <div class="tb-icon glyph">&#xE774;</div>
+            <div class="tb-icon glyph">&#xE713;</div>
+          </div>
+          <div class="tb-tray">
+            <span class="glyph tsm">&#xE70E;</span><span>ENG</span>
+            <span class="glyph">&#xE701;</span><span class="glyph">&#xE767;</span>
+            <div class="tb-clock"><span>2026/08/29</span><span>20:15:33</span></div>
+          </div>
+        </div>
+        <div class="barA dk">
+          <div class="city"><span class="name">北京</span><span class="time">20:15<span class="sec">:33</span></span></div>
+          <div class="city"><span class="name">伦敦</span><span class="time">13:15<span class="sec">:33</span></span></div>
+          <div class="city hov"><span class="name">纽约</span><span class="time">08:15<span class="sec">:33</span></span></div>
+          <div class="city"><span class="name">东京</span><span class="time">21:15<span class="sec">:33</span></span></div>
+        </div>
+      </div>
+      <p class="cap"><i></i>深色系统 · 材质与文字自动切换；城市名 60% 透明度形成层级，时间为 Display 字重 600</p>
+    </div>
+  </div>
+
+  <h3 class="blk">设置窗口（复刻 Windows 11 设置应用）</h3>
+  <div class="win">
+    <div class="titlebar">
+      <span class="appic glyph">&#xE823;</span><span class="t">WorldClockBar 设置</span>
+      <div class="wbtns">
+        <div class="wbtn glyph">&#xE921;</div><div class="wbtn glyph">&#xE922;</div><div class="wbtn close glyph">&#xE8BB;</div>
+      </div>
+    </div>
+    <div class="setA">
+      <div class="nav">
+        <div class="searchbox"><span class="glyph">&#xE721;</span>搜索设置</div>
+        <div class="nitem active"><span class="glyph">&#xE823;</span>时钟</div>
+        <div class="nitem"><span class="glyph">&#xE771;</span>个性化</div>
+        <div class="nitem"><span class="glyph">&#xE713;</span>行为</div>
+        <div class="nitem"><span class="glyph">&#xE946;</span>关于</div>
+        <div class="spacer"></div>
+        <div class="ver">WorldClockBar 1.0</div>
+      </div>
+      <div class="content">
+        <div class="page-h1">时钟</div>
+        <div class="page-sub">管理时钟条显示的城市与时间格式，改动即时生效。</div>
+
+        <div class="card">
+          <div class="row"><span class="ric glyph">&#xE774;</span><div><div class="rt">北京</div><div class="rd">China Standard Time</div></div><div class="rctl morebtn glyph">&#xE712;</div></div>
+          <div class="row"><span class="ric glyph">&#xE774;</span><div><div class="rt">伦敦</div><div class="rd">GMT Standard Time</div></div><div class="rctl morebtn glyph">&#xE712;</div></div>
+          <div class="row"><span class="ric glyph">&#xE774;</span><div><div class="rt">纽约</div><div class="rd">Eastern Standard Time</div></div><div class="rctl morebtn glyph">&#xE712;</div></div>
+          <div class="addrow"><span class="glyph">&#xE710;</span>添加城市</div>
+        </div>
+
+        <div class="card">
+          <div class="row"><div><div class="rt">显示秒</div><div class="rd">时间格式为 HH:mm:ss，关闭后只显示时分</div></div><div class="rctl"><span class="tgl on"></span></div></div>
+          <div class="row"><div><div class="rt">时间格式</div><div class="rd">12 / 24 小时制</div></div><div class="rctl"><span class="combo">24 小时制<span class="glyph">&#xE70D;</span></span></div></div>
+        </div>
+
+        <div class="card">
+          <div class="row"><div><div class="rt">贴边对齐</div><div class="rd">未拖拽时的默认停靠位置</div></div><div class="rctl"><span class="combo wide">右下角 · 靠近系统时钟<span class="glyph">&#xE70D;</span></span></div></div>
+          <div class="row"><div><div class="rt">显示器</div><div class="rd">时钟条所在的屏幕</div></div><div class="rctl"><span class="combo wide">显示器 1 · 主显示器<span class="glyph">&#xE70D;</span></span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ul class="acts">
+    <li>hover 城市 → 6px 圆角高亮，并浮现气泡显示完整日期与星期</li>
+    <li>右键 → Win11 风格菜单（Acrylic、圆角、图标 + 快捷键标注）</li>
+    <li>城市行内直接改名 / 改时区；⋮ 菜单提供上移、下移、删除</li>
+    <li>设置底部不再有「应用 / 确定 / 取消」，所有改动即时生效并自动保存</li>
+    <li>个性化页：颜色、字体、尺寸、圆角、透明度，同样卡片 + 行式控件</li>
+    <li>Mica 窗口背景，跟随系统深浅色与强调色（Win11 22H2+，Win10 降级纯色）</li>
+  </ul>
+  <div class="pc">
+    <div class="box good"><h4><span class="glyph">&#xE73E;</span>优点</h4>与系统集成度最高，Windows 用户零学习成本；信息密度克制、久看不腻；深浅色 / 强调色全自动跟随，最接近“系统自带功能”的完成度。</div>
+    <div class="box bad"><h4><span class="glyph">&#xE74D;</span>取舍</h4>个性表达最弱，时钟条只有时间信息；Win11 设置式全量控件重绘 + Mica 接入，改动面最大。</div>
+  </div>
+</section>
+
+<!-- ================= 方案 B ================= -->
+<section class="proposal" id="pb" style="--tc:#6b57c8">
+  <div class="p-head">
+    <div class="p-tag" style="background:#6b57c8">方案 B</div>
+    <div>
+      <h2>快捷浮层 —— 小组件 + 快速设置</h2>
+      <p class="p-sub">时钟条升级为“小组件行”：每城市一块 tile（大号时间 + 时差徽章）；设置改为从时钟条弹出的 360px 快捷浮层（Win11 快速设置风格），高频开关一键直达，低频项收进 Pivot 大窗。</p>
+    </div>
+    <div class="p-cost">实现成本 <b>中高</b></div>
+  </div>
+  <div class="feat-chips">
+    <span class="chip">小组件 Tile</span><span class="chip">时差 / 日期徽章</span><span class="chip">快捷浮层</span><span class="chip">拖拽排序</span><span class="chip">Pivot 大窗</span><span class="chip">紧凑 / 舒展两档</span>
+  </div>
+
+  <h3 class="blk">时钟条预览（小组件形态）</h3>
+  <div class="scenes">
+    <div>
+      <div class="scene light-wall">
+        <div class="taskbar">
+          <div class="tb-center">
+            <div class="tb-icon"><span class="winlogo"><i></i><i></i><i></i><i></i></span></div>
+            <div class="tb-icon searchc glyph">&#xE721;</div>
+            <div class="tb-icon glyph">&#xE8B7;</div>
+            <div class="tb-icon glyph">&#xE774;</div>
+            <div class="tb-icon glyph">&#xE713;</div>
+          </div>
+          <div class="tb-tray">
+            <span class="glyph tsm">&#xE70E;</span><span>ENG</span>
+            <span class="glyph">&#xE701;</span><span class="glyph">&#xE767;</span>
+            <div class="tb-clock"><span>2026/08/29</span><span>20:15:33</span></div>
+          </div>
+        </div>
+        <div class="barB lt">
+          <div class="tile"><div class="n">北京<span class="off">本地</span></div><div class="t">20:15<span class="s">:33</span></div></div>
+          <div class="tile"><div class="n">伦敦<span class="off">−7h</span></div><div class="t">13:15<span class="s">:33</span></div></div>
+          <div class="tile hov"><div class="n">纽约<span class="off">−12h</span></div><div class="t">08:15<span class="s">:33</span></div></div>
+          <div class="tile"><div class="n">东京<span class="off">+1h</span></div><div class="t">21:15<span class="s">:33</span></div></div>
+          <div class="gear glyph">&#xE713;</div>
+        </div>
+      </div>
+      <p class="cap"><i></i>浅色 · 每城市一块 tile，「纽约」hover 高亮；右端 ⚙ 为 hover 时浮现，点开下方浮层</p>
+    </div>
+    <div>
+      <div class="scene dark-wall">
+        <div class="taskbar">
+          <div class="tb-center">
+            <div class="tb-icon"><span class="winlogo"><i></i><i></i><i></i><i></i></span></div>
+            <div class="tb-icon searchc glyph">&#xE721;</div>
+            <div class="tb-icon glyph">&#xE8B7;</div>
+            <div class="tb-icon glyph">&#xE774;</div>
+            <div class="tb-icon glyph">&#xE713;</div>
+          </div>
+          <div class="tb-tray">
+            <span class="glyph tsm">&#xE70E;</span><span>ENG</span>
+            <span class="glyph">&#xE701;</span><span class="glyph">&#xE767;</span>
+            <div class="tb-clock"><span>2026/08/29</span><span>20:15:33</span></div>
+          </div>
+        </div>
+        <div class="barB dk">
+          <div class="tile"><div class="n">北京<span class="off">本地</span></div><div class="t">20:15<span class="s">:33</span></div></div>
+          <div class="tile"><div class="n">伦敦<span class="off">−7h</span></div><div class="t">13:15<span class="s">:33</span></div></div>
+          <div class="tile"><div class="n">纽约<span class="off">−12h</span></div><div class="t">08:15<span class="s">:33</span></div></div>
+          <div class="tile hov"><div class="n">东京<span class="off">+1h</span></div><div class="t">21:15<span class="s">:33</span></div></div>
+          <div class="gear glyph">&#xE713;</div>
+        </div>
+      </div>
+      <p class="cap"><i></i>深色 · 徽章色使用系统强调色；「紧凑档」隐藏徽章与秒、单行 32px，「舒展档」如上</p>
+    </div>
+  </div>
+
+  <h3 class="blk">快捷浮层（点击条上 ⚙ 弹出）</h3>
+  <div class="flywrap">
+    <div class="flyout">
+      <div class="fly-head"><span class="t">时钟条</span><span class="gear glyph">&#xE713;</span></div>
+      <div class="qtgrid">
+        <div class="qt on"><span class="glyph">&#xE823;</span>显示秒</div>
+        <div class="qt on"><span class="glyph">&#xE718;</span>始终置顶</div>
+        <div class="qt"><span class="glyph">&#xE7E8;</span>开机自启</div>
+      </div>
+      <div class="fly-div"></div>
+      <div class="fly-label">城市 · 长按拖拽排序<span class="mini">4 个城市</span></div>
+      <div class="frow"><span class="grip">⠿</span><span class="fn">北京</span><span class="ft">20:15:33</span></div>
+      <div class="frow hov"><span class="grip">⠿</span><span class="fn">伦敦</span><span class="ft">13:15:33</span></div>
+      <div class="frow"><span class="grip">⠿</span><span class="fn">纽约</span><span class="ft">08:15:33</span></div>
+      <div class="frow"><span class="grip">⠿</span><span class="fn">东京</span><span class="ft">21:15:33</span></div>
+      <div class="fly-div"></div>
+      <div class="fly-foot">打开全部设置<span class="glyph">&#xE76C;</span></div>
+    </div>
+  </div>
+
+  <h3 class="blk">全部设置（低频项收进 Pivot 大窗）</h3>
+  <div class="win">
+    <div class="titlebar">
+      <span class="appic glyph">&#xE823;</span><span class="t">WorldClockBar 设置</span>
+      <div class="wbtns">
+        <div class="wbtn glyph">&#xE921;</div><div class="wbtn glyph">&#xE922;</div><div class="wbtn close glyph">&#xE8BB;</div>
+      </div>
+    </div>
+    <div class="winB" style="height:330px">
+      <div class="pv"><span class="on">时钟</span><span>外观</span><span>行为</span><span>关于</span></div>
+      <div class="body">
+        <div>
+          <div class="card">
+            <div class="row"><span class="ric glyph">&#xE774;</span><div><div class="rt">北京</div><div class="rd">China Standard Time · 本地</div></div><div class="rctl morebtn glyph">&#xE712;</div></div>
+            <div class="row"><span class="ric glyph">&#xE774;</span><div><div class="rt">伦敦</div><div class="rd">GMT Standard Time · −7h</div></div><div class="rctl morebtn glyph">&#xE712;</div></div>
+            <div class="addrow"><span class="glyph">&#xE710;</span>添加城市</div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="row"><div><div class="rt">尺寸档位</div><div class="rd">紧凑单行 / 舒展双行（含时差徽章）</div></div><div class="rctl"><span class="seg"><span class="on">紧凑</span><span>舒展</span></span></div></div>
+            <div class="row"><div><div class="rt">显示时差徽章</div><div class="rd">相对本地时差，如 −7h</div></div><div class="rctl"><span class="tgl on"></span></div></div>
+            <div class="row"><div><div class="rt">贴边对齐</div><div class="rd">未拖拽时的默认停靠位置</div></div><div class="rctl"><span class="combo">右下角<span class="glyph">&#xE70D;</span></span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ul class="acts">
+    <li>hover 城市 tile → 浮现完整日期、星期、时差详情气泡</li>
+    <li>条右端 hover 出现 ⚙ → 从条下方弹出浮层，点击外部自动关闭</li>
+    <li>浮层顶部三枚快捷开关（秒 / 置顶 / 自启），即点即生效</li>
+    <li>浮层城市列表长按拖拽排序，行内可改名、删除</li>
+    <li>点击 tile 本身 → 弹出该城市详情卡（日期 / 星期 / 时差，为未来日出日落留位）</li>
+    <li>双击时钟条（保留现有习惯）→ 直接打开 Pivot 大窗「外观」页</li>
+  </ul>
+  <div class="pc">
+    <div class="box good"><h4><span class="glyph">&#xE73E;</span>优点</h4>高频操作路径最短（不用打开设置窗口）；时差徽章、详情卡让信息量可扩展；形态最接近 Win11 小组件的现代感。</div>
+    <div class="box bad"><h4><span class="glyph">&#xE74D;</span>取舍</h4>视觉存在感强、占宽最大（城市多时需滚动或收起）；浮层 + 大窗双层结构，交互状态与实现细节最多。</div>
+  </div>
+</section>
+
+<!-- ================= 方案 C ================= -->
+<section class="proposal" id="pc" style="--tc:#c26a1f">
+  <div class="p-head">
+    <div class="p-tag" style="background:#c26a1f">方案 C</div>
+    <div>
+      <h2>极简墨字 —— 排版即界面</h2>
+      <p class="p-sub">时钟条去掉一切装饰：无背景、无分隔线，只留优雅的字体排印（细字重 + tabular 数字 + 秒数上标），像“印在桌面上”。设置窗口收窄为 520px 单列流，主题用色卡点选。</p>
+    </div>
+    <div class="p-cost">实现成本 <b>低</b></div>
+  </div>
+  <div class="feat-chips">
+    <span class="chip">无边框纯排版</span><span class="chip">细字重 + tabular 数字</span><span class="chip">秒数上标</span><span class="chip">主题色卡</span><span class="chip">单列设置流</span><span class="chip">文字色自适应</span>
+  </div>
+
+  <h3 class="blk">时钟条预览（印在桌面上）</h3>
+  <div class="scenes">
+    <div>
+      <div class="scene light-wall">
+        <div class="taskbar">
+          <div class="tb-center">
+            <div class="tb-icon"><span class="winlogo"><i></i><i></i><i></i><i></i></span></div>
+            <div class="tb-icon searchc glyph">&#xE721;</div>
+            <div class="tb-icon glyph">&#xE8B7;</div>
+            <div class="tb-icon glyph">&#xE774;</div>
+            <div class="tb-icon glyph">&#xE713;</div>
+          </div>
+          <div class="tb-tray">
+            <span class="glyph tsm">&#xE70E;</span><span>ENG</span>
+            <span class="glyph">&#xE701;</span><span class="glyph">&#xE767;</span>
+            <div class="tb-clock"><span>2026/08/29</span><span>20:15:33</span></div>
+          </div>
+        </div>
+        <div class="barC dk-tx">
+          <span class="cg"><span class="name">北京</span><span class="time">20:15<span class="sec">33</span></span></span>
+          <span class="cg"><span class="name">伦敦</span><span class="time">13:15<span class="sec">33</span></span></span>
+          <span class="cg"><span class="name">东京</span><span class="time">21:15<span class="sec">33</span></span></span>
+        </div>
+      </div>
+      <p class="cap"><i></i>浅色壁纸 · 墨蓝文字 + 轻微白色光晕保证可读；城市名 Light 300 字重 62% 透明度，秒为 12px 上标</p>
+    </div>
+    <div>
+      <div class="scene dark-wall">
+        <div class="taskbar">
+          <div class="tb-center">
+            <div class="tb-icon"><span class="winlogo"><i></i><i></i><i></i><i></i></span></div>
+            <div class="tb-icon searchc glyph">&#xE721;</div>
+            <div class="tb-icon glyph">&#xE8B7;</div>
+            <div class="tb-icon glyph">&#xE774;</div>
+            <div class="tb-icon glyph">&#xE713;</div>
+          </div>
+          <div class="tb-tray">
+            <span class="glyph tsm">&#xE70E;</span><span>ENG</span>
+            <span class="glyph">&#xE701;</span><span class="glyph">&#xE767;</span>
+            <div class="tb-clock"><span>2026/08/29</span><span>20:15:33</span></div>
+          </div>
+        </div>
+        <div class="barC lt-tx">
+          <span class="cg"><span class="name">北京</span><span class="time">20:15<span class="sec">33</span></span></span>
+          <span class="cg"><span class="name">纽约</span><span class="time">08:15<span class="sec">33</span></span></span>
+          <span class="cg"><span class="name">伦敦</span><span class="time">13:15<span class="sec">33</span></span></span>
+        </div>
+      </div>
+      <p class="cap"><i></i>深色壁纸 · 雾白文字 + 深色光晕；hover 时浮现 4% 背景（拖拽暗示），平时完全隐于桌面</p>
+    </div>
+  </div>
+
+  <h3 class="blk">设置窗口（520px 单列流）</h3>
+  <div class="win winC" style="width:560px">
+    <div class="titlebar">
+      <span class="appic glyph">&#xE823;</span><span class="t">WorldClockBar 设置</span>
+      <div class="wbtns">
+        <div class="wbtn glyph">&#xE921;</div><div class="wbtn glyph">&#xE922;</div><div class="wbtn close glyph">&#xE8BB;</div>
+      </div>
+    </div>
+    <div class="body">
+      <div class="h1">设置</div>
+      <div class="searchbox"><span class="glyph">&#xE721;</span>搜索设置…</div>
+
+      <div class="sect">主题<span style="font-weight:400">点击即换 · 即时生效</span></div>
+      <div class="swgrid">
+        <div class="sw sel"><div class="prev" style="background:#f7f8fa;color:#1b1b1b">20:15</div><div class="lbl">浅色<span class="ck glyph">&#xE73E;</span></div></div>
+        <div class="sw"><div class="prev" style="background:#232326;color:#f0f2f5">20:15</div><div class="lbl">深色</div></div>
+        <div class="sw"><div class="prev" style="background:#000;color:#ffe000">20:15</div><div class="lbl">高对比</div></div>
+        <div class="sw"><div class="prev" style="background:linear-gradient(135deg,#dfe9f3,#b9cde6);color:#2a4158">20:15</div><div class="lbl">雾蓝</div></div>
+        <div class="sw"><div class="prev" style="background:linear-gradient(135deg,#f6ead8,#e8cdb0);color:#5c4326">20:15</div><div class="lbl">暖砂</div></div>
+        <div class="sw"><div class="prev" style="background:linear-gradient(135deg,#cdb4de,#8fb8de);color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.3)">20:15</div><div class="lbl">玻璃</div></div>
+      </div>
+
+      <div class="sect">排版</div>
+      <div class="card">
+        <div class="row"><div><div class="rt">字体</div><div class="rd">时间与城市名共用</div></div><div class="rctl"><span class="combo">Segoe UI Variable Display<span class="glyph">&#xE70D;</span></span></div></div>
+        <div class="row"><div><div class="rt">字号</div><div class="rd">时间主体字号</div></div><div class="rctl sldrow"><span class="sld"><span class="tr"></span><span class="fl"></span><span class="th"></span></span><span class="sldval">23</span></div></div>
+        <div class="row"><div><div class="rt">秒数样式</div><div class="rd">弱化为小号上标时不抖动</div></div><div class="rctl"><span class="seg"><span>完整</span><span class="on">上标</span><span>隐藏</span></span></div></div>
+      </div>
+
+      <div class="sect">城市<span style="font-weight:400"><a href="#">＋ 添加</a></span></div>
+      <div class="card">
+        <div class="row"><span class="morebtn glyph" style="opacity:.4">⠿</span><div><div class="rt">北京</div></div><span class="ft" style="margin-left:auto;font-variant-numeric:tabular-nums;font-size:13px;opacity:.7">20:15:33</span><span class="morebtn glyph">&#xE74D;</span></div>
+        <div class="row"><span class="morebtn glyph" style="opacity:.4">⠿</span><div><div class="rt">伦敦</div></div><span class="ft" style="margin-left:auto;font-variant-numeric:tabular-nums;font-size:13px;opacity:.7">13:15:33</span><span class="morebtn glyph">&#xE74D;</span></div>
+        <div class="row"><span class="morebtn glyph" style="opacity:.4">⠿</span><div><div class="rt">东京</div></div><span class="ft" style="margin-left:auto;font-variant-numeric:tabular-nums;font-size:13px;opacity:.7">21:15:33</span><span class="morebtn glyph">&#xE74D;</span></div>
+      </div>
+    </div>
+  </div>
+
+  <ul class="acts">
+    <li>无背景排版：hover 时浮现 4% 背景 + 6px 圆角，作为可拖拽暗示</li>
+    <li>文字颜色可「自适应壁纸明暗」，也可手动锁深 / 锁浅</li>
+    <li>数字全部 tabular（等宽数字），秒数跳动脉冲不抖动</li>
+    <li>6 张主题色卡点选即换，选中态为 2px 强调色描边 + 对勾</li>
+    <li>可选「极简模式」只显示 HH:mm，hover 自动展开秒与城市名</li>
+    <li>城市列表 ☰ 手柄拖拽排序、行内删除；设置即改即生效</li>
+  </ul>
+  <div class="pc">
+    <div class="box good"><h4><span class="glyph">&#xE73E;</span>优点</h4>最轻、最不打扰，常驻桌面最耐看；实现成本最低（核心是排版与材质，不需要浮层等新组件）；Fluent 排印气质独特。</div>
+    <div class="box bad"><h4><span class="glyph">&#xE74D;</span>取舍</h4>可读性依赖壁纸对比度，浅色壁纸下需要自适应文字色兜底；信息扩展能力弱（放不下徽章 / 详情）；“极简”个性化空间反而小。</div>
+  </div>
+</section>
+
+<!-- ================= 对比 ================= -->
+<section class="cmp">
+  <h2>三方案对比</h2>
+  <table>
+    <tr><th></th><th>方案 A · 原生延伸</th><th>方案 B · 快捷浮层</th><th>方案 C · 极简墨字</th></tr>
+    <tr><td>一句话定位</td><td>像系统自带的功能，最大公约数的安全选择</td><td>高频操作最快，信息可扩展的小组件</td><td>排版即界面，最轻最不打扰</td></tr>
+    <tr><td>时钟条形态</td><td>Acrylic 细长单行条，竖线分隔，与任务栏同高呼应</td><td>小组件 Tile 行：大号时间 + 时差徽章 + 悬浮阴影</td><td>无边框纯文字，细字重 + 秒数上标，靠间距分组</td></tr>
+    <tr><td>设置架构</td><td>NavigationView 左导航 + Win11 卡片行（像系统设置）</td><td>360px 快捷浮层 + Pivot 大窗双层</td><td>520px 单列流：搜索 + 主题色卡 + 排版 + 城市</td></tr>
+    <tr><td>信息扩展性</td><td>低（仅时间）</td><td><b>高（时差徽章、城市详情卡、可加日出日落）</b></td><td>低（排版紧凑）</td></tr>
+    <tr><td>交互亮点</td><td>行内编辑 + ⋮ 菜单；Win11 上下文菜单</td><td>一键快捷开关；拖拽排序；tile 详情气泡</td><td>主题色卡即点即换；壁纸自适应文字色</td></tr>
+    <tr><td>实现成本</td><td><b>高</b>（全量控件重绘 + Mica，约 2~3 天）</td><td><b>中高</b>（新浮层组件 + 条重构，约 2~3 天）</td><td><b>低</b>（排版与材质为主，约 1~2 天）</td></tr>
+    <tr><td>适合谁</td><td>想要“装了就像没装、系统该有的样子”</td><td>跨时区沟通多、频繁看时间换算的重度用户</td><td>追求桌面美学、讨厌界面元素的轻量用户</td></tr>
+  </table>
+  <p class="foot"><b>实现说明（三方案共用）：</b>不迁移框架，保持 .NET 8 + WPF，通过 <code>DwmSetWindowAttribute</code>（<code>DWMWA_SYSTEMBACKDROP_TYPE</code> / <code>DWMWA_USE_IMMERSIVE_DARK_MODE</code> / <code>DWMWA_WINDOW_CORNER_PREFERENCE</code>）接入 Mica / Acrylic / 深色标题栏与圆角窗口；Win10 自动降级为纯色材质。所有控件（ToggleSwitch、ComboBox、Slider、上下文菜单、标题栏）用 WPF 样式重绘为 Fluent 观感，时间数字启用 tabular figures 防抖动。现有功能（拖拽、边缘吸附、托盘、多显示器、自启）全部保留。</p>
+</section>
+
+</div>
+</body>
+</html>

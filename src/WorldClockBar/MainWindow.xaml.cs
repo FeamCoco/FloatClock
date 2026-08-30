@@ -1,12 +1,13 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
-using System.Globalization;
 using Microsoft.Win32;
 using WorldClockBar.Models;
 using WorldClockBar.Services;
@@ -38,6 +39,38 @@ public partial class MainWindow : Window
     private int _windowStartScreenY;
     private double _contentWidth = 180;
 
+    // Bar visual state, refreshed by ApplyBarAppearance.
+    private bool _acrylicActive;
+    private bool _systemBackdrop;                 // DWMSBT acrylic (Win11 22H2+)
+    private Brush _barBackgroundBrush = Brushes.White;
+    private Brush _solidBackgroundBrush = Brushes.White;   // opaque fallback (no material)
+    private Brush _materialBrush = Brushes.White;          // translucent tint over system acrylic
+    private Brush _barOverlayBrush = Brushes.Transparent;
+    private Brush _barBorderBrush = Brushes.Gray;
+    private Brush _hoverBrush = Brushes.LightGray;
+    private Brush _foregroundBrush = Brushes.Black;
+    private Brush _secondaryBrush = Brushes.Gray;
+    private Brush _separatorBrush = Brushes.Gray;
+    private FontFamily _timeFont = new("Segoe UI");
+    private double _fontSize = 15;
+    private string _timeFormat = "HH:mm:ss";
+
+    private sealed class CityItem
+    {
+        public Border Host = null!;
+        public TextBlock NameBlock = null!;
+        public Run MainRun = null!;
+        public Run? SecondsRun;
+        public Run? TailRun;
+        public TextBlock? TipDate;
+        public TextBlock? TipZone;
+        public string TimeZoneId = "";
+        public bool IsValid = true;
+    }
+
+    private readonly List<CityItem> _cityItems = new();
+    private readonly List<Border> _separators = new();
+
     public MainWindow(SettingsService settingsService, AppSettings settings)
     {
         _settingsService = settingsService;
@@ -61,20 +94,23 @@ public partial class MainWindow : Window
         Dispatcher.BeginInvoke(() =>
         {
             _tray.ShowBalloon("WorldClockBar 已启动",
-                "白色时钟条在屏幕底部任务栏上方（默认：英国时间）。托盘图标可右键「显示时钟条」。");
+                "时钟条在屏幕底部任务栏上方（默认右下角）。双击打开设置，托盘图标可右键「显示时钟条」。");
         }, DispatcherPriority.ApplicationIdle);
 
         // Hide from Alt-Tab via extended style after handle is ready.
         SourceInitialized += (_, _) =>
         {
             ApplyToolWindowStyle();
+            ApplyBarMaterial();
             EnforceTopmost();
         };
 
+        // Follow the OS light/dark switch when the bar theme is "System".
+        ThemeService.SystemThemeChanged += OnSystemThemeChanged;
+
         ContentRendered += (_, _) =>
         {
-            // After first render, force measure + snap so the bar is visible.
-            RefreshClocks(reposition: true);
+            BuildBarItems();
             ShowAndSnap();
         };
 
@@ -92,7 +128,7 @@ public partial class MainWindow : Window
         };
         _timer.Tick += (_, _) =>
         {
-            RefreshClocks(reposition: false);
+            UpdateTimes();
             EnforceTopmost();
         };
         _timer.Start();
@@ -102,11 +138,11 @@ public partial class MainWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        ApplyAppearance();
+        ApplyBarAppearance();
         BuildMonitorMenu();
         AutoStartMenuItem.IsChecked = _settings.Behavior.AutoStart;
         TopmostMenuItem.IsChecked = _settings.Behavior.AlwaysOnTop;
-        RefreshClocks(reposition: true);
+        BuildBarItems();
         ShowAndSnap();
     }
 
@@ -114,8 +150,19 @@ public partial class MainWindow : Window
     {
         _timer.Stop();
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+        ThemeService.SystemThemeChanged -= OnSystemThemeChanged;
         _settingsWindow?.Close();
         _tray.Dispose();
+    }
+
+    private void OnSystemThemeChanged()
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            ApplyBarAppearance();
+            if (_settingsWindow is { IsLoaded: true })
+                _settingsWindow.RefreshSystemTheme();
+        });
     }
 
     private void ShowAndSnap()
@@ -153,116 +200,406 @@ public partial class MainWindow : Window
         // Keep always-on-top as the default expected behavior.
         if (!_settings.Behavior.AlwaysOnTop)
             _settings.Behavior.AlwaysOnTop = true;
-        ApplyAppearance();
+        ApplyBarAppearance();
         BuildMonitorMenu();
         AutoStartMenuItem.IsChecked = _settings.Behavior.AutoStart;
         TopmostMenuItem.IsChecked = _settings.Behavior.AlwaysOnTop;
-        RefreshClocks(reposition: true);
+        BuildBarItems();
         EnforceTopmost();
     }
 
-    private void ApplyAppearance()
+    // ==================================================================
+    //  Appearance
+    // ==================================================================
+
+    private static bool IsLightForeground(Color c) =>
+        (0.299 * c.R + 0.587 * c.G + 0.114 * c.B) / 255.0 > 0.55;
+
+    private Color EffectiveBackgroundColor()
     {
         var a = _settings.Appearance;
-        RootBorder.Background = ColorHelper.ToBrush(a.Background, Color.FromArgb(0xCC, 0x1E, 0x1E, 0x1E));
-        RootBorder.BorderBrush = ColorHelper.ToBrush(a.SeparatorColor, Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
-        RootBorder.CornerRadius = new CornerRadius(Math.Max(0, a.CornerRadius));
-        RootBorder.Opacity = a.Opacity;
-        Height = Math.Max(20, a.BarHeight);
+        var palette = ThemeService.ResolveBarPalette(a.ThemeName);
+        var isPreset = ThemeService.BarPalettes.Any(p =>
+            string.Equals(p.Name, a.ThemeName, StringComparison.OrdinalIgnoreCase));
+        return ColorHelper.Parse(
+            isPreset ? palette.Background : a.Background,
+            ColorHelper.Parse(palette.Background, Colors.White));
     }
 
-    private void RefreshClocks(bool reposition)
+    private Color EffectiveForegroundColor()
     {
-        var lines = _timeService.BuildLines(_settings.Clocks, _settings.Behavior);
         var a = _settings.Appearance;
-        var fg = ColorHelper.ToBrush(a.Foreground, Colors.White);
-        var sep = ColorHelper.ToBrush(a.SeparatorColor, Color.FromArgb(0x88, 0xFF, 0xFF, 0xFF));
-        var font = new FontFamily(a.FontFamily);
-        var fontSize = a.FontSize;
+        var palette = ThemeService.ResolveBarPalette(a.ThemeName);
+        var isPreset = ThemeService.BarPalettes.Any(p =>
+            string.Equals(p.Name, a.ThemeName, StringComparison.OrdinalIgnoreCase));
+        return ColorHelper.Parse(
+            isPreset ? palette.Foreground : a.Foreground,
+            ColorHelper.Parse(palette.Foreground, Colors.Black));
+    }
 
-        ClocksPanel.Items.Clear();
+    private Color EffectiveSeparatorColor()
+    {
+        var a = _settings.Appearance;
+        var palette = ThemeService.ResolveBarPalette(a.ThemeName);
+        var isPreset = ThemeService.BarPalettes.Any(p =>
+            string.Equals(p.Name, a.ThemeName, StringComparison.OrdinalIgnoreCase));
+        return ColorHelper.Parse(
+            isPreset ? palette.SeparatorColor : a.SeparatorColor,
+            ColorHelper.Parse(palette.SeparatorColor, Colors.Gray));
+    }
 
-        for (var i = 0; i < lines.Count; i++)
+    private void ApplyBarAppearance()
+    {
+        var a = _settings.Appearance;
+        var bg = EffectiveBackgroundColor();
+        var fg = EffectiveForegroundColor();
+        var sep = EffectiveSeparatorColor();
+        var darkSurface = IsLightForeground(fg);
+
+        _barBackgroundBrush = Frozen(bg);
+        _solidBackgroundBrush = Frozen(Color.FromRgb(bg.R, bg.G, bg.B));
+        // Over the system acrylic the brush only tints — the material adds its own
+        // smoke layer, so clamp heavy alphas or the bar goes near-solid (mockup ≈ 74%).
+        _materialBrush = Frozen(Color.FromArgb(Math.Min(bg.A, (byte)0xB4), bg.R, bg.G, bg.B));
+        _barOverlayBrush = Frozen(darkSurface
+            ? Color.FromArgb(0x16, 0xFF, 0xFF, 0xFF)
+            : Color.FromArgb(0x10, 0xFF, 0xFF, 0xFF));
+        _barBorderBrush = Frozen(darkSurface
+            ? Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF)
+            : Color.FromArgb(0x1C, 0x00, 0x00, 0x00));
+        _hoverBrush = Frozen(darkSurface
+            ? Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF)
+            : Color.FromArgb(0x0F, 0x00, 0x00, 0x00));
+        _foregroundBrush = Frozen(fg);
+        _secondaryBrush = Frozen(Color.FromArgb(0x9E, fg.R, fg.G, fg.B));
+        _separatorBrush = Frozen(sep);
+        _timeFont = new FontFamily(string.IsNullOrWhiteSpace(a.FontFamily) ? "Segoe UI" : a.FontFamily);
+        _fontSize = Math.Clamp(a.FontSize, 9, 40);
+        _timeFormat = ResolveFormat(_settings.Behavior);
+
+        UpdateRootBackground();
+        RootBorder.BorderBrush = _barBorderBrush;
+        RootBorder.CornerRadius = new CornerRadius(Math.Max(0, a.CornerRadius));
+        RootBorder.Opacity = a.Opacity;
+        Height = Math.Max(22, a.BarHeight);
+        // Restyle already-built items.
+        foreach (var item in _cityItems)
+            StyleCityItem(item, item.IsValid);
+
+        foreach (var sepLine in _separators)
+            sepLine.Background = _separatorBrush;
+
+        // The acrylic tint lives in DWM, not in WPF brushes — refresh it on every
+        // palette change so theme switches take effect immediately.
+        if (new WindowInteropHelper(this).Handle != IntPtr.Zero)
+            ApplyBarMaterial();
+    }
+
+    private void UpdateRootBackground()
+    {
+        RootBorder.Background = _systemBackdrop ? _materialBrush
+            : _acrylicActive ? _barOverlayBrush
+            : _solidBackgroundBrush;
+    }
+
+    /// <summary>Enable (or refresh) the bar material: system acrylic on Win11 22H2+,
+    /// legacy blur-behind accent on older systems, opaque tint when neither works.</summary>
+    private void ApplyBarMaterial()
+    {
+        var tint = EffectiveBackgroundColor();
+        var dark = IsLightForeground(EffectiveForegroundColor());
+
+        _systemBackdrop = ThemeService.TrySetSystemAcrylic(this, dark);
+        if (_systemBackdrop)
         {
-            if (i > 0)
-            {
-                ClocksPanel.Items.Add(new TextBlock
-                {
-                    Text = " | ",
-                    Foreground = sep,
-                    FontFamily = font,
-                    FontSize = fontSize,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0)
-                });
-            }
-
-            var (label, timeText, isValid) = lines[i];
-            var block = new TextBlock
-            {
-                Text = $"{label} {timeText}",
-                Foreground = isValid ? fg : Brushes.OrangeRed,
-                FontFamily = font,
-                FontSize = fontSize,
-                FontWeight = FontWeights.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0),
-                Padding = new Thickness(0)
-            };
-            ClocksPanel.Items.Add(block);
-        }
-
-        // Tight width: text only + border padding (avoid large empty space after seconds).
-        double textWidth = 0;
-        var typeface = new Typeface(font, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
-        var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-        for (var i = 0; i < lines.Count; i++)
-        {
-            if (i > 0)
-            {
-                var sepFt = new FormattedText(
-                    " | ", CultureInfo.CurrentUICulture,
-                    System.Windows.FlowDirection.LeftToRight, typeface, fontSize, sep, dpi);
-                textWidth += sepFt.WidthIncludingTrailingWhitespace;
-            }
-
-            var (label, timeText, _) = lines[i];
-            var ft = new FormattedText(
-                $"{label} {timeText}", CultureInfo.CurrentUICulture,
-                System.Windows.FlowDirection.LeftToRight, typeface, fontSize, fg, dpi);
-            textWidth += ft.WidthIncludingTrailingWhitespace;
-        }
-
-        // Padding 6+6 + border 1+1 + 2px safety (anti-clip for bold glyphs)
-        var chrome = RootBorder.Padding.Left + RootBorder.Padding.Right
-                     + RootBorder.BorderThickness.Left + RootBorder.BorderThickness.Right
-                     + 2;
-        var contentWidth = Math.Ceiling(textWidth + chrome);
-        contentWidth = Math.Max(contentWidth, 40);
-        _contentWidth = contentWidth;
-        Width = contentWidth;
-        Height = Math.Max(20, a.BarHeight);
-
-        if (_isDragging)
-            return;
-
-        if (reposition)
-        {
-            _placement.PlaceBar(this, _settings, contentWidth);
+            _acrylicActive = true;
         }
         else
         {
-            // Width may change every second — keep position, only clamp to work area.
-            _placement.ClampCurrent(this, _settings, contentWidth);
+            _acrylicActive = ThemeService.TrySetAcrylic(this, tint);
+            if (!_acrylicActive)
+                ThemeService.ClearSystemBackdrop(this);
         }
+        UpdateRootBackground();
+    }
+
+    private static SolidColorBrush Frozen(Color c)
+    {
+        var b = new SolidColorBrush(c);
+        b.Freeze();
+        return b;
+    }
+
+    private static string ResolveFormat(BehaviorSettings behavior)
+    {
+        if (!string.IsNullOrWhiteSpace(behavior.TimeFormat))
+            return behavior.TimeFormat;
+        return behavior.ShowSeconds ? "HH:mm:ss" : "HH:mm";
+    }
+
+    // ==================================================================
+    //  Bar content: build once, then only text updates per tick
+    // ==================================================================
+
+    private void BuildBarItems()
+    {
+        ClocksPanel.Items.Clear();
+        _cityItems.Clear();
+        _separators.Clear();
+
+        var clocks = _settings.Clocks;
+        for (var i = 0; i < clocks.Count; i++)
+        {
+            if (i > 0)
+            {
+                var sepLine = new Border
+                {
+                    Width = 1,
+                    Height = Math.Max(14, _settings.Appearance.BarHeight - 20),
+                    Background = _separatorBrush,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                _separators.Add(sepLine);
+                ClocksPanel.Items.Add(sepLine);
+            }
+
+            var clock = clocks[i];
+            var item = new CityItem
+            {
+                TimeZoneId = clock.TimeZoneId,
+                NameBlock = new TextBlock
+                {
+                    Text = string.IsNullOrWhiteSpace(clock.Label) ? clock.TimeZoneId : clock.Label.Trim(),
+                    FontFamily = _timeFont,
+                    FontSize = 12,
+                    // Rest the name on the time's baseline (descender ≈ 0.2em), like the mockup.
+                    Margin = new Thickness(0, 0, 9, Math.Round(_fontSize * 0.2)),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }
+            };
+
+            var timeBlock = new TextBlock
+            {
+                FontFamily = _timeFont,
+                FontSize = _fontSize,
+                FontWeight = FontWeights.SemiBold,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            // Tabular digits: "1" occupies the same advance width as "8", so seconds
+            // tick without the digits wobbling.
+            timeBlock.Typography.NumeralAlignment = FontNumeralAlignment.Tabular;
+            item.MainRun = new Run("--:--");
+            timeBlock.Inlines.Add(item.MainRun);
+            if (_timeFormat.Contains(":ss", StringComparison.Ordinal))
+            {
+                item.SecondsRun = new Run(":00");
+                timeBlock.Inlines.Add(item.SecondsRun);
+                var tail = TailAfterSeconds(_timeFormat);
+                if (!string.IsNullOrEmpty(tail))
+                {
+                    item.TailRun = new Run("");
+                    timeBlock.Inlines.Add(item.TailRun);
+                }
+            }
+
+            var content = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            content.Children.Add(item.NameBlock);
+            content.Children.Add(timeBlock);
+
+            var tip = new StackPanel { Orientation = Orientation.Vertical };
+            item.TipDate = new TextBlock { FontSize = 13, FontWeight = FontWeights.SemiBold };
+            item.TipZone = new TextBlock { FontSize = 12, Margin = new Thickness(0, 2, 0, 0) };
+            item.TipDate.SetResourceReference(TextBlock.ForegroundProperty, "Fluent.TextPrimary");
+            item.TipZone.SetResourceReference(TextBlock.ForegroundProperty, "Fluent.TextSecondary");
+            tip.Children.Add(item.TipDate);
+            tip.Children.Add(item.TipZone);
+            item.Host = new Border
+            {
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(12, 0, 12, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Background = Brushes.Transparent,
+                ToolTip = new ToolTip { Content = tip, Placement = System.Windows.Controls.Primitives.PlacementMode.Top }
+            };
+            item.Host.MouseEnter += (_, _) => item.Host.Background = _hoverBrush;
+            item.Host.MouseLeave += (_, _) => item.Host.Background = Brushes.Transparent;
+
+            item.Host.Child = content;
+            ClocksPanel.Items.Add(item.Host);
+            _cityItems.Add(item);
+            StyleCityItem(item, true);
+        }
+
+        ComputeBarWidth();
+        UpdateTimes();
+    }
+
+    private void StyleCityItem(CityItem item, bool isValid)
+    {
+        item.IsValid = isValid;
+        item.NameBlock.Foreground = isValid ? _secondaryBrush : Frozen(Color.FromRgb(0xFF, 0x8C, 0x00));
+
+        if (!isValid)
+        {
+            item.MainRun.Foreground = Frozen(Color.FromRgb(0xFF, 0x8C, 0x00));
+            if (item.SecondsRun is not null) item.SecondsRun.Foreground = item.MainRun.Foreground;
+            if (item.TailRun is not null) item.TailRun.Foreground = item.MainRun.Foreground;
+            return;
+        }
+
+        // Seconds are dimmed to ~52% via a translucent copy of the foreground color
+        // (Run has no Opacity property of its own).
+        item.MainRun.Foreground = _foregroundBrush;
+        if (item.SecondsRun is not null)
+        {
+            var c = ((SolidColorBrush)_foregroundBrush).Color;
+            item.SecondsRun.Foreground = Frozen(Color.FromArgb((byte)(c.A * 0.52), c.R, c.G, c.B));
+        }
+        if (item.TailRun is not null)
+            item.TailRun.Foreground = _secondaryBrush;
+    }
+
+    private static string? TailAfterSeconds(string format)
+    {
+        var idx = format.IndexOf(":ss", StringComparison.Ordinal);
+        if (idx < 0)
+            return null;
+        var tail = format[(idx + 3)..];
+        // "h:mm:ss tt" → tail is " tt"; trim leading spaces into the run text.
+        return tail.Length > 0 ? tail : null;
+    }
+
+    private void UpdateTimes()
+    {
+        var lines = _timeService.BuildLines(_settings.Clocks, _settings.Behavior);
+        var utcNow = DateTime.UtcNow;
+
+        for (var i = 0; i < lines.Count && i < _cityItems.Count; i++)
+        {
+            var line = lines[i];
+            var item = _cityItems[i];
+
+            if (!line.IsValid)
+            {
+                item.MainRun.Text = "--:--:--";
+                if (item.SecondsRun is not null) item.SecondsRun.Text = "";
+                if (item.TailRun is not null) item.TailRun.Text = "";
+                StyleCityItem(item, false);
+            }
+            else
+            {
+                SplitTime(line.TimeText, item);
+                StyleCityItem(item, true);
+            }
+
+            // Tooltip: full local date + zone info for that city.
+            try
+            {
+                var zone = TimeZoneInfo.FindSystemTimeZoneById(item.TimeZoneId);
+                var local = TimeZoneInfo.ConvertTimeFromUtc(utcNow, zone);
+                item.TipDate!.Text = local.ToString("yyyy/M/d dddd", CultureInfo.CurrentCulture);
+                var offset = zone.GetUtcOffset(local); // includes DST
+                var sign = offset >= TimeSpan.Zero ? "+" : "-";
+                item.TipZone!.Text = $"{zone.Id} · UTC{sign}{Math.Abs(offset.Hours)}:{Math.Abs(offset.Minutes):00}";
+            }
+            catch
+            {
+                item.TipDate!.Text = "";
+                item.TipZone!.Text = "时区不可用";
+            }
+        }
+    }
+
+    /// <summary>Split "HH:mm:ss …" text so the seconds run can be dimmed.</summary>
+    private void SplitTime(string text, CityItem item)
+    {
+        var idx = _timeFormat.IndexOf(":ss", StringComparison.Ordinal);
+        if (idx >= 0 && text.Length >= idx + 3 && string.IsNullOrEmpty(_settings.Behavior.DateFormat))
+        {
+            item.MainRun.Text = text[..idx];
+            item.SecondsRun!.Text = text.Substring(idx, 3);
+            if (item.TailRun is not null)
+                item.TailRun.Text = text[(idx + 3)..];
+        }
+        else
+        {
+            item.MainRun.Text = text;
+            if (item.SecondsRun is not null) item.SecondsRun.Text = "";
+            if (item.TailRun is not null) item.TailRun.Text = "";
+        }
+    }
+
+    /// <summary>
+    /// Constant-width measurement: measure with every digit replaced by "8" so the
+    /// bar never resizes as seconds tick. Text updates alone don't re-measure.
+    /// </summary>
+    private void ComputeBarWidth()
+    {
+        var a = _settings.Appearance;
+        var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+        var nameTypeface = new Typeface(_timeFont, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+        var timeTypeface = new Typeface(_timeFont, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
+        var placeholder = PlaceholderFor(ResolveFormat(_settings.Behavior));
+
+        double textWidth = 0;
+        foreach (var clock in _settings.Clocks)
+        {
+            var label = string.IsNullOrWhiteSpace(clock.Label) ? clock.TimeZoneId : clock.Label.Trim();
+            textWidth += Measure(nameTypeface, label, 12, dpi);
+            textWidth += 9; // gap between name and time
+            textWidth += Measure(timeTypeface, placeholder, _fontSize, dpi);
+        }
+
+        // Safety: if font measurement fails (composite family quirk), fall back to a
+        // generous per-city estimate so the bar never clips.
+        if (textWidth < _settings.Clocks.Count * 30)
+            textWidth = _settings.Clocks.Count * 95;
+
+        var chrome = RootBorder.Padding.Left + RootBorder.Padding.Right
+                     + RootBorder.BorderThickness.Left + RootBorder.BorderThickness.Right
+                     + _separators.Count * 1
+                     + 2; // safety
+        var cityPadding = _cityItems.Count * 24; // 12 left + 12 right per city Border
+
+        _contentWidth = Math.Max(40, Math.Ceiling(textWidth + cityPadding + chrome));
+        Width = _contentWidth;
+        Height = Math.Max(22, a.BarHeight);
+    }
+
+    private static double Measure(Typeface typeface, string text, double size, double pixelsPerDip)
+    {
+        var ft = new FormattedText(
+            text,
+            CultureInfo.CurrentUICulture,
+            System.Windows.FlowDirection.LeftToRight,
+            typeface,
+            size,
+            Brushes.Black,
+            pixelsPerDip);
+        return ft.WidthIncludingTrailingWhitespace;
+    }
+
+    private static string PlaceholderFor(string format)
+    {
+        var chars = format.Select(c => c switch
+        {
+            'H' or 'h' or 'm' or 's' => '8',
+            't' => 'A',
+            _ => c
+        }).ToArray();
+        return new string(chars);
     }
 
     private void Reposition()
     {
         Width = _contentWidth;
-        Height = Math.Max(20, _settings.Appearance.BarHeight);
+        Height = Math.Max(22, _settings.Appearance.BarHeight);
         _placement.PlaceBar(this, _settings, _contentWidth);
     }
+
+    // ==================================================================
+    //  Monitor menu
+    // ==================================================================
 
     private void BuildMonitorMenu()
     {
@@ -309,10 +646,14 @@ public partial class MainWindow : Window
         _settings.Appearance.HorizontalAlignment = "Right";
         _settings.Appearance.OffsetX = 4;
         _settings.Appearance.OffsetY = 2;
-        _settingsService.Save(_settings);
+        try { _settingsService.Save(_settings); } catch { /* ignore */ }
         BuildMonitorMenu();
         Reposition();
     }
+
+    // ==================================================================
+    //  Settings window wiring
+    // ==================================================================
 
     private void OnOpenSettings(object sender, RoutedEventArgs e) => OpenSettings();
 
@@ -327,10 +668,7 @@ public partial class MainWindow : Window
         }
 
         _settingsWindow = new SettingsWindow(_settingsService, _settings, _autostart, _placement);
-        _settingsWindow.SettingsSaved += (_, updated) =>
-        {
-            ApplySettings(updated);
-        };
+        _settingsWindow.SettingsChanged += updated => ApplySettings(updated);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
         _settingsWindow.Activate();
@@ -356,7 +694,6 @@ public partial class MainWindow : Window
     private void OnToggleTopmost(object sender, RoutedEventArgs e)
     {
         // User asked for persistent always-on-top; keep it forced on.
-        // Menu remains for visibility but re-enables if unchecked.
         _settings.Behavior.AlwaysOnTop = true;
         TopmostMenuItem.IsChecked = true;
         EnforceTopmost();
@@ -374,7 +711,6 @@ public partial class MainWindow : Window
 
         try
         {
-            // Keep WPF flag true; Win32 SetWindowPos re-pins Z-order without flicker.
             if (!Topmost)
                 Topmost = true;
 
@@ -407,6 +743,10 @@ public partial class MainWindow : Window
         System.Windows.Application.Current.Shutdown();
     }
 
+    // ==================================================================
+    //  Dragging (acrylic is disabled mid-drag to avoid smear)
+    // ==================================================================
+
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ClickCount > 1)
@@ -431,6 +771,14 @@ public partial class MainWindow : Window
         var mouseScreen = PointToScreen(_dragStart);
         _dragStartScreenX = (int)mouseScreen.X;
         _dragStartScreenY = (int)mouseScreen.Y;
+
+        // Legacy accent blur smears while dragging — drop to opaque solid for the drag.
+        // The Win11 system backdrop tracks the window live, so it can stay on.
+        if (!_systemBackdrop)
+        {
+            ThemeService.ClearAcrylic(this);
+            RootBorder.Background = _solidBackgroundBrush;
+        }
 
         CaptureMouse();
         MouseMove += OnDragMove;
@@ -479,6 +827,8 @@ public partial class MainWindow : Window
         var result = _placement.DragTo(this, _settings, left, top, _contentWidth, snapEdges: true);
         _placement.SaveFreePosition(_settings, result.Screen, result.X, result.Y);
         try { _settingsService.Save(_settings); } catch { /* ignore */ }
+
+        ApplyBarMaterial();
     }
 
     [DllImport("user32.dll")]

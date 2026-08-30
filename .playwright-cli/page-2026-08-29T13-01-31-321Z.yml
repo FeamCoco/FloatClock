@@ -1,0 +1,405 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]: WorldClockBar · 设置窗口深色重设计
+    - heading "设置窗口 · 三个深色方案" [level=1] [ref=e5]
+    - paragraph [ref=e6]: 针对「卡片发黑、与背景反差过大」的问题出了三个方向：方案一去掉卡片盒子、用分区线代替，最极简； 方案二保留 Win11 卡片结构、把层次翻转为「卡片比背景微亮」，最稳； 方案三暖炭底色 + 品牌橙贯穿，最有个性。内容均为 1:1 实际尺寸的「时钟」页。
+    - generic [ref=e7]:
+      - text: 为什么现在的卡片发黑：当前卡片底色是
+      - code [ref=e8]: "#12FFFFFF"
+      - text: （7% 白色半透明）叠在窗口背板上——Mica 正常时只是微微提亮，一旦背板没接管，半透明区域就直接压在黑底上渲染成近黑色块。三个方案全部改用不透明色阶，任何背板状态下观感一致。
+    - navigation [ref=e9]:
+      - link "方案一 · 一体无界 去掉卡片盒" [ref=e10] [cursor=pointer]:
+        - /url: "#p1"
+        - text: 方案一 · 一体无界
+        - generic [ref=e12]: 去掉卡片盒
+      - link "方案二 · 雾层微抬升 Win11 标准" [ref=e13] [cursor=pointer]:
+        - /url: "#p2"
+        - text: 方案二 · 雾层微抬升
+        - generic [ref=e15]: Win11 标准
+      - link "方案三 · 暖烬品牌 暖色 + 品牌橙" [ref=e16] [cursor=pointer]:
+        - /url: "#p3"
+        - text: 方案三 · 暖烬品牌
+        - generic [ref=e18]: 暖色 + 品牌橙
+  - generic [ref=e19]:
+    - generic [ref=e20]:
+      - generic [ref=e21]: 方案一
+      - heading "一体无界 · 用分区线代替卡片" [level=2] [ref=e22]
+    - paragraph [ref=e23]: 整窗只有一层表面，彻底消灭"黑块"：分组之间只留一条 1px 分区线，控件直接浮在窗面上。 视觉噪音最低、最耐看，接近 VS Code / macOS 设置的气质；代价是分组感比卡片弱，依赖间距与线来呼吸。
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]: 
+        - generic [ref=e29]: WorldClockBar 设置
+        - generic [ref=e30]:
+          - generic [ref=e31]: 
+          - generic [ref=e33]: 
+          - generic [ref=e35]: 
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - generic [ref=e40]: 
+            - text: 搜索设置…
+          - generic [ref=e41]:
+            - generic [ref=e42]:
+              - generic [ref=e44]: 
+              - text: 时钟
+            - generic [ref=e45]:
+              - generic [ref=e46]: 
+              - text: 个性化
+            - generic [ref=e47]:
+              - generic [ref=e48]: 
+              - text: 行为
+            - generic [ref=e49]:
+              - generic [ref=e50]: 
+              - text: 关于
+          - generic [ref=e51]: WorldClockBar 1.1.1
+        - generic [ref=e52]:
+          - generic [ref=e53]: 时钟
+          - generic [ref=e54]: 管理时钟条显示的城市与时间格式，改动即时生效。
+          - generic [ref=e55]:
+            - generic [ref=e56]:
+              - generic [ref=e57]: 城市
+              - generic [ref=e58]: 长按拖动排序 · 取用：菜单
+            - generic [ref=e59]:
+              - generic [ref=e60]: 
+              - generic [ref=e61]:
+                - generic [ref=e62]: 
+                - text: 英国
+              - generic [ref=e63]:
+                - text: (UTC+00:00) 都柏林，爱丁堡…
+                - generic [ref=e64]: 
+              - generic [ref=e65]: 
+            - generic [ref=e66]:
+              - generic [ref=e67]: 
+              - text: 添加城市
+          - generic [ref=e68]:
+            - generic [ref=e69]:
+              - generic [ref=e70]: 
+              - generic [ref=e71]:
+                - generic [ref=e72]: 显示秒
+                - generic [ref=e73]: 关闭后只显示 时分
+            - generic [ref=e77]:
+              - generic [ref=e78]: A
+              - generic [ref=e79]:
+                - generic [ref=e80]: 时间格式
+                - generic [ref=e81]: 12 / 24 小时制
+              - generic [ref=e82]:
+                - text: 24 小时制
+                - generic [ref=e83]: 
+          - generic [ref=e84]:
+            - generic [ref=e85]:
+              - generic [ref=e86]: 
+              - generic [ref=e87]:
+                - generic [ref=e88]: 贴边对齐
+                - generic [ref=e89]: 未拖动时的默认停靠位置
+              - generic [ref=e90]:
+                - text: 右下角 · 靠近系统时钟
+                - generic [ref=e91]: 
+            - generic [ref=e93]:
+              - generic [ref=e94]: 
+              - generic [ref=e95]:
+                - generic [ref=e96]: 位置状态
+                - generic [ref=e97]: 自由位置（已记住，可继续拖拽微调）
+              - generic [ref=e98]: 贴回右下角
+            - generic [ref=e100]:
+              - generic [ref=e101]: 
+              - generic [ref=e102]:
+                - generic [ref=e103]: 显示器
+                - generic [ref=e104]: 时钟条所在的屏幕，可跨屏拖拽
+              - generic [ref=e105]:
+                - text: 显示器 1 (2560×1440) 主
+                - generic [ref=e106]: 
+          - generic [ref=e107]: 时钟条可在任务栏以外的工作区任意拖拽，靠近屏幕四边自动吸附；改动会自动保存。
+    - generic [ref=e108]:
+      - generic [ref=e109]:
+        - generic [ref=e110]:
+          - text: 窗口
+          - code [ref=e112]: "#26262B"
+        - generic [ref=e113]:
+          - text: 控件
+          - code [ref=e115]: "#33333B"
+        - generic [ref=e116]:
+          - text: 分区线
+          - code [ref=e118]: 白 7%
+        - generic [ref=e119]:
+          - text: 强调
+          - code [ref=e121]: "#EDA63D"
+        - generic [ref=e122]:
+          - text: 次级文字
+          - code [ref=e124]: "#A6ABB5"
+      - list [ref=e125]:
+        - listitem [ref=e126]:
+          - text: 零色块反差：窗面即画布，卡片盒与阴影全部移除，分组靠
+          - code [ref=e127]: 分区线 + 间距
+          - text: 。
+        - listitem [ref=e128]:
+          - text: 控件（下拉框 / 输入框 / 按钮）保留微亮底
+          - code [ref=e129]: "#33333B"
+          - text: ，成为页面上唯一"凸起"的元素，层级反而更清楚。
+        - listitem [ref=e130]: 行 hover 是整行极淡高亮，与"贴边"无框的排版配合，操作感干净。
+        - listitem [ref=e131]:
+          - text: 实现量最小：只动
+          - code [ref=e132]: FluentCard
+          - text: 与间距 token。
+  - generic [ref=e133]:
+    - generic [ref=e134]:
+      - generic [ref=e135]: 方案二
+      - heading "雾层微抬升 · 标准双层次" [level=2] [ref=e136]
+    - paragraph [ref=e137]:
+      - text: 保留现有卡片结构，但把明度关系翻转为正确方向：窗口更深（
+      - code [ref=e138]: "#1C1C20"
+      - text: ）、卡片比背景亮一档（
+      - code [ref=e139]: "#28282D"
+      - text: ）， 加 8px 圆角和发丝边。层次全靠"卡片微微浮起"表达，不再有黑块压在浅底上的违和感。最接近 Win11 设置应用的原生气质。
+    - generic [ref=e141]:
+      - generic [ref=e142]:
+        - generic [ref=e143]: 
+        - generic [ref=e145]: WorldClockBar 设置
+        - generic [ref=e146]:
+          - generic [ref=e147]: 
+          - generic [ref=e149]: 
+          - generic [ref=e151]: 
+      - generic [ref=e153]:
+        - generic [ref=e154]:
+          - generic [ref=e155]:
+            - generic [ref=e156]: 
+            - text: 搜索设置…
+          - generic [ref=e157]:
+            - generic [ref=e158]:
+              - generic [ref=e159]: 
+              - text: 时钟
+            - generic [ref=e160]:
+              - generic [ref=e161]: 
+              - text: 个性化
+            - generic [ref=e162]:
+              - generic [ref=e163]: 
+              - text: 行为
+            - generic [ref=e164]:
+              - generic [ref=e165]: 
+              - text: 关于
+          - generic [ref=e166]: WorldClockBar 1.1.1
+        - generic [ref=e167]:
+          - generic [ref=e168]: 时钟
+          - generic [ref=e169]: 管理时钟条显示的城市与时间格式，改动即时生效。
+          - generic [ref=e170]:
+            - generic [ref=e171]:
+              - generic [ref=e172]: 城市
+              - generic [ref=e173]: 长按拖动排序 · 取用：菜单
+            - generic [ref=e174]:
+              - generic [ref=e175]: 
+              - generic [ref=e176]:
+                - generic [ref=e177]: 
+                - text: 英国
+              - generic [ref=e178]:
+                - text: (UTC+00:00) 都柏林，爱丁堡…
+                - generic [ref=e179]: 
+              - generic [ref=e180]: 
+            - generic [ref=e181]:
+              - generic [ref=e182]: 
+              - text: 添加城市
+          - generic [ref=e183]:
+            - generic [ref=e184]:
+              - generic [ref=e185]: 
+              - generic [ref=e186]:
+                - generic [ref=e187]: 显示秒
+                - generic [ref=e188]: 关闭后只显示 时分
+            - generic [ref=e192]:
+              - generic [ref=e193]: A
+              - generic [ref=e194]:
+                - generic [ref=e195]: 时间格式
+                - generic [ref=e196]: 12 / 24 小时制
+              - generic [ref=e197]:
+                - text: 24 小时制
+                - generic [ref=e198]: 
+          - generic [ref=e199]:
+            - generic [ref=e200]:
+              - generic [ref=e201]: 
+              - generic [ref=e202]:
+                - generic [ref=e203]: 贴边对齐
+                - generic [ref=e204]: 未拖动时的默认停靠位置
+              - generic [ref=e205]:
+                - text: 右下角 · 靠近系统时钟
+                - generic [ref=e206]: 
+            - generic [ref=e208]:
+              - generic [ref=e209]: 
+              - generic [ref=e210]:
+                - generic [ref=e211]: 位置状态
+                - generic [ref=e212]: 自由位置（已记住，可继续拖拽微调）
+              - generic [ref=e213]: 贴回右下角
+            - generic [ref=e215]:
+              - generic [ref=e216]: 
+              - generic [ref=e217]:
+                - generic [ref=e218]: 显示器
+                - generic [ref=e219]: 时钟条所在的屏幕，可跨屏拖拽
+              - generic [ref=e220]:
+                - text: 显示器 1 (2560×1440) 主
+                - generic [ref=e221]: 
+          - generic [ref=e222]: 时钟条可在任务栏以外的工作区任意拖拽，靠近屏幕四边自动吸附；改动会自动保存。
+    - generic [ref=e223]:
+      - generic [ref=e224]:
+        - generic [ref=e225]:
+          - text: 窗口
+          - code [ref=e227]: "#1C1C20"
+        - generic [ref=e228]:
+          - text: 卡片
+          - code [ref=e230]: "#28282D"
+        - generic [ref=e231]:
+          - text: 控件
+          - code [ref=e233]: "#38383F"
+        - generic [ref=e234]:
+          - text: 卡边
+          - code [ref=e236]: 白 6%
+        - generic [ref=e237]:
+          - text: 强调
+          - code [ref=e239]: "#F0A63E"
+        - generic [ref=e240]:
+          - text: 次级文字
+          - code [ref=e242]: "#A9AEB8"
+      - list [ref=e243]:
+        - listitem [ref=e244]:
+          - text: 明度阶梯：窗口
+          - code [ref=e245]: "#1C1C20"
+          - text: → 卡片
+          - code [ref=e246]: "#28282D"
+          - text: → 控件
+          - code [ref=e247]: "#38383F"
+          - text: ，每层差一档、全部不透明，Mica 在与不在都一样。
+        - listitem [ref=e248]: 卡片圆角 8px、发丝边 白 6%，浮起感靠"亮一档"而不是靠黑；与 Win11 设置深色模式同构。
+        - listitem [ref=e249]: 选中导航项改为中性浅灰药丸 + 橙色图标，比现在的橙色块安静。
+        - listitem [ref=e250]: 浅色主题沿用同一结构镜像映射即可（白 100 / 白 78 / 灰 94）。
+  - generic [ref=e251]:
+    - generic [ref=e252]:
+      - generic [ref=e253]: 方案三
+      - heading "暖烬 · 品牌橙贯穿" [level=2] [ref=e254]
+    - paragraph [ref=e255]:
+      - text: 把系统给的橙色强调色当作品牌色用：整窗换成带暖调的炭色（
+      - code [ref=e256]: "#211E1A"
+      - text: ），卡片微暖、 分区线与控件边都掺一点橙。导航选中、分组标题、开关、链接全部由橙线串起来，辨识度最高—— 一眼能认出"这是 WorldClockBar 的设置"，和时钟条的暖色调也互相呼应。
+    - generic [ref=e258]:
+      - generic [ref=e259]:
+        - generic [ref=e260]: 
+        - generic [ref=e262]: WorldClockBar 设置
+        - generic [ref=e263]:
+          - generic [ref=e264]: 
+          - generic [ref=e266]: 
+          - generic [ref=e268]: 
+      - generic [ref=e270]:
+        - generic [ref=e271]:
+          - generic [ref=e272]:
+            - generic [ref=e273]: 
+            - text: 搜索设置…
+          - generic [ref=e274]:
+            - generic [ref=e275]:
+              - generic [ref=e277]: 
+              - text: 时钟
+            - generic [ref=e278]:
+              - generic [ref=e279]: 
+              - text: 个性化
+            - generic [ref=e280]:
+              - generic [ref=e281]: 
+              - text: 行为
+            - generic [ref=e282]:
+              - generic [ref=e283]: 
+              - text: 关于
+          - generic [ref=e284]: WorldClockBar 1.1.1
+        - generic [ref=e285]:
+          - generic [ref=e286]: 时钟
+          - generic [ref=e287]: 管理时钟条显示的城市与时间格式，改动即时生效。
+          - generic [ref=e288]:
+            - generic [ref=e289]:
+              - generic [ref=e290]: 城市
+              - generic [ref=e291]: 长按拖动排序 · 取用：菜单
+            - generic [ref=e292]:
+              - generic [ref=e293]: 
+              - generic [ref=e294]:
+                - generic [ref=e295]: 
+                - text: 英国
+              - generic [ref=e296]:
+                - text: (UTC+00:00) 都柏林，爱丁堡…
+                - generic [ref=e297]: 
+              - generic [ref=e298]: 
+            - generic [ref=e299]:
+              - generic [ref=e300]: 
+              - text: 添加城市
+          - generic [ref=e301]:
+            - generic [ref=e302]:
+              - generic [ref=e303]: 
+              - generic [ref=e304]:
+                - generic [ref=e305]: 显示秒
+                - generic [ref=e306]: 关闭后只显示 时分
+            - generic [ref=e310]:
+              - generic [ref=e311]: A
+              - generic [ref=e312]:
+                - generic [ref=e313]: 时间格式
+                - generic [ref=e314]: 12 / 24 小时制
+              - generic [ref=e315]:
+                - text: 24 小时制
+                - generic [ref=e316]: 
+          - generic [ref=e317]:
+            - generic [ref=e318]:
+              - generic [ref=e319]: 
+              - generic [ref=e320]:
+                - generic [ref=e321]: 贴边对齐
+                - generic [ref=e322]: 未拖动时的默认停靠位置
+              - generic [ref=e323]:
+                - text: 右下角 · 靠近系统时钟
+                - generic [ref=e324]: 
+            - generic [ref=e326]:
+              - generic [ref=e327]: 
+              - generic [ref=e328]:
+                - generic [ref=e329]: 位置状态
+                - generic [ref=e330]: 自由位置（已记住，可继续拖拽微调）
+              - generic [ref=e331]: 贴回右下角
+            - generic [ref=e333]:
+              - generic [ref=e334]: 
+              - generic [ref=e335]:
+                - generic [ref=e336]: 显示器
+                - generic [ref=e337]: 时钟条所在的屏幕，可跨屏拖拽
+              - generic [ref=e338]:
+                - text: 显示器 1 (2560×1440) 主
+                - generic [ref=e339]: 
+          - generic [ref=e340]: 时钟条可在任务栏以外的工作区任意拖拽，靠近屏幕四边自动吸附；改动会自动保存。
+    - generic [ref=e341]:
+      - generic [ref=e342]:
+        - generic [ref=e343]:
+          - text: 窗口
+          - code [ref=e345]: "#211E1A"
+        - generic [ref=e346]:
+          - text: 卡片
+          - code [ref=e348]: "#2B2722"
+        - generic [ref=e349]:
+          - text: 控件
+          - code [ref=e351]: "#3A342C"
+        - generic [ref=e352]:
+          - text: 强调
+          - code [ref=e354]: "#F0A63E"
+        - generic [ref=e355]:
+          - text: 选中文字
+          - code [ref=e357]: "#FFD79A"
+        - generic [ref=e358]:
+          - text: 次级文字
+          - code [ref=e360]: "#B3AA9C"
+      - list [ref=e361]:
+        - listitem [ref=e362]:
+          - text: 暖色三阶：窗口
+          - code [ref=e363]: "#211E1A"
+          - text: → 卡片
+          - code [ref=e364]: "#2B2722"
+          - text: → 控件
+          - code [ref=e365]: "#3A342C"
+          - text: ，同为不透明，彻底告别黑块。
+        - listitem [ref=e366]: 橙色只出现在"可点 / 选中 / 开"的语义上：导航左条 + 图标、分组标题、开关、链接按钮、下拉箭头，位置可预期，不会花。
+        - listitem [ref=e367]: 选中导航项 = 橙 11% 底 + 3px 橙左条 + 暖金文字，识别度远高于灰色药丸。
+        - listitem [ref=e368]: 与时钟条自定义配色（暖沙 / 橙）天然呼应；浅色主题可映射为"米白 + 深橙"。
+  - generic [ref=e369]:
+    - heading "怎么选" [level=3] [ref=e370]
+    - paragraph [ref=e371]: 求稳、最像原生 Windows → 方案二。改动可控，只是把明度关系修正 + token 全部换不透明，风险最低。
+    - paragraph [ref=e372]: 喜欢极简、讨厌任何"块" → 方案一。界面最安静，但分组辨识靠分区线，习惯卡片式的人需要适应。
+    - paragraph [ref=e373]: 想要应用自己的气质、和橙色时钟条成套 → 方案三。个性最强，也最容易在截图里被认出来。
+    - paragraph [ref=e374]:
+      - text: 三稿均为静态 HTML 实际尺寸渲染；选定后在浏览器里用
+      - generic [ref=e375]: Ctrl
+      - text: +
+      - generic [ref=e376]: +
+      - text: /
+      - generic [ref=e377]: "-"
+      - text: 缩放检查细部，也可让我把任意两稿做混合（例如"方案二的卡片 + 方案三的橙色语义"）。

@@ -25,6 +25,9 @@ public partial class App : Application
 
         base.OnStartup(e);
 
+        // Install Fluent brushes + OS theme hooks before any window is created.
+        ThemeService.Initialize();
+
         var settingsService = new SettingsService();
         // --reset 或环境变量可恢复出厂：英国 + 白色主题
         var reset = e.Args.Any(a => string.Equals(a, "--reset", StringComparison.OrdinalIgnoreCase))

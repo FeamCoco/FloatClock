@@ -2,14 +2,20 @@ namespace WorldClockBar.Models;
 
 public sealed class AppearanceSettings
 {
-    public string Background { get; set; } = "#F2FFFFFF";
-    public string Foreground { get; set; } = "#FF111111";
-    public string SeparatorColor { get; set; } = "#66111111";
-    public string FontFamily { get; set; } = "Segoe UI";
-    public double FontSize { get; set; } = 14;
+    /// <summary>
+    /// System | Light | Dark | HighContrast | MistBlue | WarmSand | Glass | Custom.
+    /// Selecting a preset fills Background/Foreground/SeparatorColor; System follows the OS theme.
+    /// </summary>
+    public string ThemeName { get; set; } = "System";
+
+    public string Background { get; set; } = "#E9FAFBFC";
+    public string Foreground { get; set; } = "#FF1B1B1B";
+    public string SeparatorColor { get; set; } = "#24000000";
+    public string FontFamily { get; set; } = "Segoe UI Variable Display, Segoe UI";
+    public double FontSize { get; set; } = 15;
     public double Opacity { get; set; } = 1.0;
-    public double BarHeight { get; set; } = 32;
-    public double CornerRadius { get; set; } = 6;
+    public double BarHeight { get; set; } = 40;
+    public double CornerRadius { get; set; } = 8;
 
     /// <summary>Left | Center | Right — used when FreePosition is false.</summary>
     public string HorizontalAlignment { get; set; } = "Right";

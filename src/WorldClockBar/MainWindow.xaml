@@ -1,9 +1,9 @@
 <Window x:Class="WorldClockBar.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="WorldClockBar"
         WindowStyle="None"
-        AllowsTransparency="True"
         Background="Transparent"
         ShowInTaskbar="False"
         Topmost="True"
@@ -15,30 +15,62 @@
         MouseDoubleClick="OnMouseDoubleClick"
         Loaded="OnLoaded"
         Closing="OnClosing">
+    <!-- GlassFrameThickness=-1 extends the DWM frame over the whole window so the
+         system acrylic backdrop can render. CaptionHeight must stay 0 — a caption
+         would turn the whole bar into a system-draggable area. -->
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0"
+                            ResizeBorderThickness="0"
+                            GlassFrameThickness="-1"
+                            CornerRadius="0"
+                            UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
     <Border x:Name="RootBorder"
-            CornerRadius="6"
-            Padding="6,0"
+            CornerRadius="8"
+            Padding="2,0"
             BorderThickness="1"
-            BorderBrush="#66000000"
-            Background="#F2FFFFFF"
-            Cursor="SizeAll"
-            HorizontalAlignment="Left">
+            HorizontalAlignment="Left"
+            Cursor="SizeAll">
         <Border.ContextMenu>
             <ContextMenu>
-                <MenuItem Header="设置..." Click="OnOpenSettings"/>
-                <MenuItem Header="选择显示器" x:Name="MonitorMenu"/>
+                <MenuItem Header="设置…" Click="OnOpenSettings">
+                    <MenuItem.Icon>
+                        <TextBlock FontFamily="{StaticResource Fluent.IconFont}" Text="&#xE713;" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="选择显示器" x:Name="MonitorMenu">
+                    <MenuItem.Icon>
+                        <TextBlock FontFamily="{StaticResource Fluent.IconFont}" Text="&#xE7F4;" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
                 <Separator/>
-                <MenuItem Header="开机自启" x:Name="AutoStartMenuItem" IsCheckable="True" Click="OnToggleAutoStart"/>
-                <MenuItem Header="始终置顶" x:Name="TopmostMenuItem" IsCheckable="True" IsChecked="True" Click="OnToggleTopmost"/>
+                <MenuItem Header="开机自启" x:Name="AutoStartMenuItem" IsCheckable="True" Click="OnToggleAutoStart">
+                    <MenuItem.Icon>
+                        <TextBlock FontFamily="{StaticResource Fluent.IconFont}" Text="&#xE7E8;" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="始终置顶" x:Name="TopmostMenuItem" IsCheckable="True" IsChecked="True" Click="OnToggleTopmost">
+                    <MenuItem.Icon>
+                        <TextBlock FontFamily="{StaticResource Fluent.IconFont}" Text="&#xE718;" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
                 <Separator/>
-                <MenuItem Header="贴回右下角" Click="OnReposition"/>
-                <MenuItem Header="退出" Click="OnExit"/>
+                <MenuItem Header="贴回右下角" Click="OnReposition">
+                    <MenuItem.Icon>
+                        <TextBlock FontFamily="{StaticResource Fluent.IconFont}" Text="&#xE72C;" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="退出" Click="OnExit">
+                    <MenuItem.Icon>
+                        <TextBlock FontFamily="{StaticResource Fluent.IconFont}" Text="&#xE711;" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
             </ContextMenu>
         </Border.ContextMenu>
-        <ItemsControl x:Name="ClocksPanel">
+        <ItemsControl x:Name="ClocksPanel" VerticalAlignment="Center">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal"/>
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
         </ItemsControl>
