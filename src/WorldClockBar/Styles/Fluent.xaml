@@ -11,6 +11,22 @@
     <DropShadowEffect x:Key="Fluent.TooltipShadow" BlurRadius="16" ShadowDepth="2" Direction="270" Opacity="0.16" Color="#000000"/>
     <DropShadowEffect x:Key="Fluent.SwitchShadow" BlurRadius="4" ShadowDepth="1" Direction="270" Opacity="0.35" Color="#000000"/>
 
+    <!-- ==================================================== brand mark -->
+
+    <!-- 「A · 子午盘」：圆环 + 贯穿的竖直经线（docs/brand/a-meridian/mark.svg）。
+         原 SVG 是描边图形，这里把描边转成了填充轮廓，才能用 Fill 吃主题色：
+         外圆 r84 顺时针 + 内圆 r64 逆时针 = 环（Nonzero 下孔洞自动留空）；
+         经线是 x∈[118,138]、y∈[72,184] 加两端半圆帽的胶囊，顺时针。
+         两图形同向，重叠处绕数为 2 仍填充，所以经线能正常穿过环心。 -->
+    <PathGeometry x:Key="Brand.MarkGeometry" FillRule="Nonzero"
+                  Figures="M44,128 A84,84 0 1 1 212,128 A84,84 0 1 1 44,128 M64,128 A64,64 0 1 0 192,128 A64,64 0 1 0 64,128 M118,72 A10,10 0 0 1 138,72 L138,184 A10,10 0 0 1 118,184 Z"/>
+
+    <!-- 应用图标口径：标志占宽 58%，圆角 = 边长 × 22%（品牌规格 §3）。 -->
+    <Style x:Key="Brand.Tile" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Fluent.Accent}"/>
+        <Setter Property="CornerRadius" Value="3.5"/>
+    </Style>
+
     <!-- ==================================================== text styles -->
 
     <Style x:Key="FluentPageTitle" TargetType="TextBlock">
@@ -124,10 +140,11 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Opacity" Value="0.88"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Fluent.AccentHover}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Opacity" Value="0.76"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Fluent.AccentHover}"/>
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.82"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.45"/>
@@ -169,6 +186,11 @@
         <Setter Property="Foreground" Value="{DynamicResource Fluent.Accent}"/>
         <Setter Property="FontSize" Value="13.5"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource Fluent.AccentHover}"/>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- title bar caption buttons -->
@@ -642,12 +664,18 @@
                 <ControlTemplate TargetType="RadioButton">
                     <Border x:Name="Bd" CornerRadius="6" Background="Transparent">
                         <Grid>
+                            <!-- §6.2: 选中态 = 3px 品牌青指示条 + 一层浅底 + 主色文字 -->
+                            <Border x:Name="Indicator" Width="3" CornerRadius="1.5"
+                                    HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Height="18" Margin="0,0,0,0"
+                                    Background="{DynamicResource Fluent.Accent}"
+                                    Visibility="Collapsed"/>
                             <StackPanel Orientation="Horizontal" Margin="13,0,8,0" VerticalAlignment="Center">
                                 <TextBlock x:Name="Icon" Text="{TemplateBinding Tag}"
                                            FontFamily="{StaticResource Fluent.IconFont}" FontSize="16"
                                            Foreground="{DynamicResource Fluent.TextSecondary}"
                                            VerticalAlignment="Center"/>
-                                <ContentPresenter Margin="13,0,0,0" VerticalAlignment="Center"/>
+                                <ContentPresenter x:Name="Label" Margin="13,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -657,7 +685,9 @@
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Fluent.RowSelected}"/>
+                            <Setter TargetName="Indicator" Property="Visibility" Value="Visible"/>
                             <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource Fluent.Accent}"/>
+                            <Setter TargetName="Label" Property="TextElement.Foreground" Value="{DynamicResource Fluent.Accent}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

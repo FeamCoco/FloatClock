@@ -47,11 +47,12 @@
         <!-- ============ title bar ============ -->
         <Grid Background="Transparent">
             <StackPanel Orientation="Horizontal" Margin="14,0,0,0" VerticalAlignment="Center">
-                <Border Width="16" Height="16" CornerRadius="4" Background="{DynamicResource Fluent.Accent}"
-                        VerticalAlignment="Center">
-                    <TextBlock Text="&#xE823;" FontFamily="{StaticResource Fluent.IconFont}" FontSize="9"
-                               Foreground="{DynamicResource Fluent.AccentText}"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <!-- 窗口身份 = 应用图标：品牌青圆角方块（圆角 = 边长 × 22%）+ 子午盘标志 -->
+                <Border Style="{StaticResource Brand.Tile}" Width="16" Height="16" VerticalAlignment="Center">
+                    <Path Width="9.5" Height="9.5" Stretch="Uniform"
+                          Fill="{DynamicResource Fluent.AccentText}"
+                          Data="{StaticResource Brand.MarkGeometry}"
+                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <TextBlock Text="WorldClockBar 设置" FontSize="12.5" Margin="10,0,0,0"
                            Foreground="{DynamicResource Fluent.TextPrimary}" VerticalAlignment="Center"/>
@@ -83,11 +84,24 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <Grid x:Name="SearchHost">
+                    <!-- §6.1 导航顶部的品牌身份：22px 标志 + 文字标。这是窗口与图标同源的地方。 -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="13,4,0,14"
+                                VerticalAlignment="Center">
+                        <Path Width="22" Height="22" Stretch="Uniform"
+                              Fill="{DynamicResource Fluent.Accent}"
+                              Data="{StaticResource Brand.MarkGeometry}"
+                              VerticalAlignment="Center"/>
+                        <TextBlock Text="WorldClockBar" FontSize="13.5" FontWeight="SemiBold"
+                                   Margin="10,0,0,0" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Fluent.TextPrimary}"/>
+                    </StackPanel>
+
+                    <Grid x:Name="SearchHost" Grid.Row="1">
                         <TextBox x:Name="SearchBox" FontSize="13" Padding="28,6,9,6"
                                  TextChanged="OnSearchTextChanged"
                                  VerticalContentAlignment="Center"/>
@@ -133,7 +147,7 @@
                         </Border>
                     </Grid>
 
-                    <StackPanel Grid.Row="1" Margin="0,14,0,0">
+                    <StackPanel Grid.Row="2" Margin="0,14,0,0">
                         <RadioButton x:Name="NavClocks" Style="{StaticResource FluentNavItem}" GroupName="Nav"
                                      Tag="&#xE823;" Content="时钟" IsChecked="True" Checked="OnNavChanged"/>
                         <RadioButton x:Name="NavLook" Style="{StaticResource FluentNavItem}" GroupName="Nav"
@@ -144,7 +158,7 @@
                                      Tag="&#xE946;" Content="关于" Checked="OnNavChanged"/>
                     </StackPanel>
 
-                    <TextBlock Grid.Row="3" x:Name="VersionText" FontSize="11"
+                    <TextBlock Grid.Row="4" x:Name="VersionText" FontSize="11"
                                Foreground="{DynamicResource Fluent.TextTertiary}" Margin="13,0,0,0"/>
                 </Grid>
             </Border>
@@ -335,22 +349,28 @@
                                                Foreground="{DynamicResource Fluent.TextTertiary}"
                                                HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                 </Grid>
+                                <!-- 品牌规格 §7：由 7 套收敛为 4 套（跟随系统 + 品牌浅 / 品牌深 + 高对比）。
+                                     每张卡是一小段真实时钟条预览：品牌青圆点 + tabular 时分。 -->
                                 <WrapPanel Margin="16,4,16,16">
                                     <Button Style="{StaticResource FluentSubtleButton}" Click="OnThemePreset" Tag="System"
                                             Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
                                         <StackPanel>
                                             <Border x:Name="ThemeBd_System" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
-                                                <Border CornerRadius="2" Height="36">
+                                                <Border CornerRadius="3" Height="36" Width="112" BorderThickness="1" BorderBrush="#FFE2E8E8">
                                                     <Border.Background>
                                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                            <GradientStop Color="#E9FAFBFC" Offset="0.5"/>
-                                                            <GradientStop Color="#CC212124" Offset="0.5"/>
+                                                            <GradientStop Color="#FFFFFFFF" Offset="0.62"/>
+                                                            <GradientStop Color="#FF111817" Offset="0.62"/>
                                                         </LinearGradientBrush>
                                                     </Border.Background>
-                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
-                                                               FontWeight="SemiBold" FontSize="14"
-                                                               Foreground="{DynamicResource Fluent.TextPrimary}"
-                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
+                                                                VerticalAlignment="Center" Margin="9,0,0,0">
+                                                        <Ellipse Width="5" Height="5" Margin="0,0,5,0"
+                                                                 Fill="{DynamicResource Fluent.Accent}" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
+                                                                   FontWeight="SemiBold" FontSize="14" Foreground="#FF14201E"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
                                                 </Border>
                                             </Border>
                                             <TextBlock Text="跟随系统" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
@@ -361,13 +381,19 @@
                                             Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
                                         <StackPanel>
                                             <Border x:Name="ThemeBd_Light" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
-                                                <Border CornerRadius="2" Height="36" Background="#E9FAFBFC">
-                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
-                                                               FontWeight="SemiBold" FontSize="14" Foreground="#FF1B1B1B"
-                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border CornerRadius="3" Height="36" Width="112" Background="#FFFFFFFF"
+                                                        BorderThickness="1" BorderBrush="#FFE2E8E8">
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
+                                                                VerticalAlignment="Center" Margin="9,0,0,0">
+                                                        <Ellipse Width="5" Height="5" Margin="0,0,5,0"
+                                                                 Fill="{DynamicResource Fluent.Accent}" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
+                                                                   FontWeight="SemiBold" FontSize="14" Foreground="#FF14201E"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
                                                 </Border>
                                             </Border>
-                                            <TextBlock Text="浅色" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
+                                            <TextBlock Text="品牌浅色" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
                                                        Foreground="{DynamicResource Fluent.TextSecondary}"/>
                                         </StackPanel>
                                     </Button>
@@ -375,13 +401,18 @@
                                             Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
                                         <StackPanel>
                                             <Border x:Name="ThemeBd_Dark" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
-                                                <Border CornerRadius="2" Height="36" Background="#FF212124">
-                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
-                                                               FontWeight="SemiBold" FontSize="14" Foreground="#FFF3F5F8"
-                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border CornerRadius="3" Height="36" Width="112" Background="#FF111817">
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
+                                                                VerticalAlignment="Center" Margin="9,0,0,0">
+                                                        <Ellipse Width="5" Height="5" Margin="0,0,5,0"
+                                                                 Fill="{DynamicResource Fluent.Accent}" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
+                                                                   FontWeight="SemiBold" FontSize="14" Foreground="#FFEAF3F1"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
                                                 </Border>
                                             </Border>
-                                            <TextBlock Text="深色" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
+                                            <TextBlock Text="品牌深色" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
                                                        Foreground="{DynamicResource Fluent.TextSecondary}"/>
                                         </StackPanel>
                                     </Button>
@@ -389,55 +420,18 @@
                                             Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
                                         <StackPanel>
                                             <Border x:Name="ThemeBd_HighContrast" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
-                                                <Border CornerRadius="2" Height="36" Background="#FF000000">
-                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
-                                                               FontWeight="SemiBold" FontSize="14" Foreground="#FFFFE000"
-                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border CornerRadius="3" Height="36" Width="112" Background="#FF000000">
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
+                                                                VerticalAlignment="Center" Margin="9,0,0,0">
+                                                        <Ellipse Width="5" Height="5" Margin="0,0,5,0"
+                                                                 Fill="#FFFFE000" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
+                                                                   FontWeight="SemiBold" FontSize="14" Foreground="#FFFFE000"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
                                                 </Border>
                                             </Border>
                                             <TextBlock Text="高对比" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
-                                                       Foreground="{DynamicResource Fluent.TextSecondary}"/>
-                                        </StackPanel>
-                                    </Button>
-                                    <Button Style="{StaticResource FluentSubtleButton}" Click="OnThemePreset" Tag="MistBlue"
-                                            Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
-                                        <StackPanel>
-                                            <Border x:Name="ThemeBd_MistBlue" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
-                                                <Border CornerRadius="2" Height="36" Background="#FFDCE9F5">
-                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
-                                                               FontWeight="SemiBold" FontSize="14" Foreground="#FF2A4158"
-                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                            </Border>
-                                            <TextBlock Text="雾蓝" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
-                                                       Foreground="{DynamicResource Fluent.TextSecondary}"/>
-                                        </StackPanel>
-                                    </Button>
-                                    <Button Style="{StaticResource FluentSubtleButton}" Click="OnThemePreset" Tag="WarmSand"
-                                            Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
-                                        <StackPanel>
-                                            <Border x:Name="ThemeBd_WarmSand" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
-                                                <Border CornerRadius="2" Height="36" Background="#FFF2E4D2">
-                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
-                                                               FontWeight="SemiBold" FontSize="14" Foreground="#FF5C4326"
-                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                            </Border>
-                                            <TextBlock Text="暖砂" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
-                                                       Foreground="{DynamicResource Fluent.TextSecondary}"/>
-                                        </StackPanel>
-                                    </Button>
-                                    <Button Style="{StaticResource FluentSubtleButton}" Click="OnThemePreset" Tag="Glass"
-                                            Padding="4" Margin="0,0,10,10" Width="122" Cursor="Hand">
-                                        <StackPanel>
-                                            <Border x:Name="ThemeBd_Glass" CornerRadius="4" BorderThickness="2" BorderBrush="Transparent">
-                                                <Border CornerRadius="2" Height="36" Background="#99FFFFFF">
-                                                    <TextBlock Text="20:15" FontFamily="{StaticResource Fluent.DisplayFont}"
-                                                               FontWeight="SemiBold" FontSize="14" Foreground="#FF33343D"
-                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                            </Border>
-                                            <TextBlock Text="玻璃" FontSize="12" Margin="0,6,0,2" HorizontalAlignment="Center"
                                                        Foreground="{DynamicResource Fluent.TextSecondary}"/>
                                         </StackPanel>
                                     </Button>
@@ -498,28 +492,8 @@
                                         </StackPanel>
                                     </Grid>
                                 </Border>
-                                <Border Style="{StaticResource SettingsRow}">
-                                    <Grid Style="{StaticResource RowContent}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="36"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE790;" Style="{StaticResource FluentRowIcon}"/>
-                                        <StackPanel Grid.Column="1">
-                                            <TextBlock Text="分隔符色" Style="{StaticResource FluentRowTitle}"/>
-                                            <TextBlock Text="城市之间的竖线" Style="{StaticResource RowDescText}"/>
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="2" Style="{StaticResource ControlCol}">
-                                            <Button Style="{StaticResource FluentSubtleButton}" Padding="2" Click="OnPickSeparator">
-                                                <Border x:Name="SepSwatch" Width="44" Height="24" CornerRadius="4"
-                                                        BorderBrush="{DynamicResource Fluent.ControlBorder}" BorderThickness="1"/>
-                                            </Button>
-                                            <TextBox x:Name="SepColorBox" Width="112" Margin="10,0,0,0" FontSize="12.5"
-                                                     TextChanged="OnColorTextChanged"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
+                                <!-- 分隔符色一行已随 §5.1 去掉：城市之间不再有竖线，改由 26px 留白划分，
+                                     留一个改了没反应的取色器比少一个控件更糟。 -->
                             </StackPanel>
                         </Border>
 
@@ -552,10 +526,10 @@
                                         <TextBlock Text="&#xE8D2;" Style="{StaticResource FluentRowIcon}"/>
                                         <StackPanel Grid.Column="1">
                                             <TextBlock Text="字号" Style="{StaticResource FluentRowTitle}"/>
-                                            <TextBlock Text="时间主体字号" Style="{StaticResource RowDescText}"/>
+                                            <TextBlock Text="时分字号，默认 19" Style="{StaticResource RowDescText}"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Style="{StaticResource ControlCol}" Width="240">
-                                            <Slider x:Name="FontSizeSlider" Minimum="10" Maximum="28" IsSnapToTickEnabled="True"
+                                            <Slider x:Name="FontSizeSlider" Minimum="12" Maximum="32" IsSnapToTickEnabled="True"
                                                     TickFrequency="1" Width="196" ValueChanged="OnSizeSliderChanged"/>
                                             <TextBlock x:Name="FontSizeValue" Width="32" Margin="12,0,0,0"
                                                        TextAlignment="Center" Style="{StaticResource FluentRowTitle}"/>
@@ -572,10 +546,10 @@
                                         <TextBlock Text="&#xE7EB;" Style="{StaticResource FluentRowIcon}"/>
                                         <StackPanel Grid.Column="1">
                                             <TextBlock Text="条高" Style="{StaticResource FluentRowTitle}"/>
-                                            <TextBlock Text="时钟条整体高度" Style="{StaticResource RowDescText}"/>
+                                            <TextBlock Text="成组两行结构，默认 60；下限随字号推导" Style="{StaticResource RowDescText}"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Style="{StaticResource ControlCol}" Width="240">
-                                            <Slider x:Name="HeightSlider" Minimum="22" Maximum="56" IsSnapToTickEnabled="True"
+                                            <Slider x:Name="HeightSlider" Minimum="52" Maximum="96" IsSnapToTickEnabled="True"
                                                     TickFrequency="1" Width="196" ValueChanged="OnSizeSliderChanged"/>
                                             <TextBlock x:Name="HeightValue" Width="32" Margin="12,0,0,0"
                                                        TextAlignment="Center" Style="{StaticResource FluentRowTitle}"/>
@@ -592,10 +566,10 @@
                                         <TextBlock Text="&#xE7EB;" Style="{StaticResource FluentRowIcon}"/>
                                         <StackPanel Grid.Column="1">
                                             <TextBlock Text="圆角" Style="{StaticResource FluentRowTitle}"/>
-                                            <TextBlock Text="0 为直角" Style="{StaticResource RowDescText}"/>
+                                            <TextBlock Text="0 为直角，默认 12" Style="{StaticResource RowDescText}"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Style="{StaticResource ControlCol}" Width="240">
-                                            <Slider x:Name="RadiusSlider" Minimum="0" Maximum="16" IsSnapToTickEnabled="True"
+                                            <Slider x:Name="RadiusSlider" Minimum="0" Maximum="20" IsSnapToTickEnabled="True"
                                                     TickFrequency="1" Width="196" ValueChanged="OnSizeSliderChanged"/>
                                             <TextBlock x:Name="RadiusValue" Width="32" Margin="12,0,0,0"
                                                        TextAlignment="Center" Style="{StaticResource FluentRowTitle}"/>
@@ -664,10 +638,21 @@
                                             <TextBlock Text="始终置顶" Style="{StaticResource FluentRowTitle}"/>
                                             <TextBlock Text="始终开启，每秒自动巩固 Z 序（全屏独占游戏除外）" Style="{StaticResource RowDescText}"/>
                                         </StackPanel>
-                                        <Border Grid.Column="2" CornerRadius="99" Padding="10,3"
-                                                Background="{DynamicResource Fluent.RowSelected}">
-                                            <TextBlock Text="始终开启" FontSize="11.5"
-                                                       Foreground="{DynamicResource Fluent.TextSecondary}"/>
+                                        <!-- 状态标签，不是开关：后台每秒都会强制置顶（SettingsWindow.OnToggleTopmost /
+                                             MainWindow.EnforceTopmost 都写死 true），做成胶囊会被当成开关去点。
+                                             描边 + 锁形图标，明确表达"这是说明，不可切换"。 -->
+                                        <Border Grid.Column="2" CornerRadius="4" Padding="8,4"
+                                                BorderBrush="{DynamicResource Fluent.ControlBorder}"
+                                                BorderThickness="1" Background="Transparent"
+                                                VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE72E;" FontFamily="{StaticResource Fluent.IconFont}"
+                                                           FontSize="11" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource Fluent.TextTertiary}"/>
+                                                <TextBlock Text="始终开启" FontSize="11.5" Margin="5,0,0,0"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource Fluent.TextTertiary}"/>
+                                            </StackPanel>
                                         </Border>
                                     </Grid>
                                 </Border>

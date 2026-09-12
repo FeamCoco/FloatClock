@@ -155,10 +155,9 @@ public partial class SettingsWindow : Window
         ("贴边对齐", "默认停靠位置", "clocks"),
         ("贴回右下角", "恢复默认停靠位置", "clocks"),
         ("显示器", "时钟条所在的屏幕", "clocks"),
-        ("主题预设", "跟随系统 / 浅色 / 深色 / 高对比 / 雾蓝 / 暖砂 / 玻璃", "look"),
+        ("主题预设", "跟随系统 / 品牌浅色 / 品牌深色 / 高对比", "look"),
         ("背景色", "时钟条背景（支持透明度）", "look"),
-        ("文字色", "时间与城市名颜色", "look"),
-        ("分隔符色", "城市之间的竖线颜色", "look"),
+        ("文字色", "时分、城市名与秒数", "look"),
         ("字体", "时间与城市名共用", "look"),
         ("字号", "时间主体字号", "look"),
         ("条高", "时钟条整体高度", "look"),
@@ -433,7 +432,7 @@ public partial class SettingsWindow : Window
             ? ""
             : _s.Appearance.ThemeName;
 
-        foreach (var name in new[] { "System", "Light", "Dark", "HighContrast", "MistBlue", "WarmSand", "Glass" })
+        foreach (var name in new[] { "System", "Light", "Dark", "HighContrast" })
         {
             if (FindName("ThemeBd_" + name) is Border bd)
                 bd.BorderBrush = string.Equals(name, current, StringComparison.OrdinalIgnoreCase)
@@ -450,7 +449,6 @@ public partial class SettingsWindow : Window
     {
         BgColorBox.Text = _s.Appearance.Background;
         FgColorBox.Text = _s.Appearance.Foreground;
-        SepColorBox.Text = _s.Appearance.SeparatorColor;
         UpdateSwatches();
     }
 
@@ -458,32 +456,19 @@ public partial class SettingsWindow : Window
     {
         BgSwatch.Background = ColorHelper.ToBrush(_s.Appearance.Background, Colors.White);
         FgSwatch.Background = ColorHelper.ToBrush(_s.Appearance.Foreground, Colors.Black);
-        SepSwatch.Background = ColorHelper.ToBrush(_s.Appearance.SeparatorColor, Colors.Gray);
     }
 
     private void OnColorTextChanged(object sender, TextChangedEventArgs e)
     {
         if (_loading || sender is not TextBox box) return;
 
-        Color parsed;
-        switch (box.Name)
-        {
-            case nameof(BgColorBox): parsed = ColorHelper.Parse(BgColorBox.Text, Color.FromArgb(0, 0, 0, 0)); break;
-            case nameof(FgColorBox): parsed = ColorHelper.Parse(FgColorBox.Text, Colors.Black); break;
-            default: parsed = ColorHelper.Parse(SepColorBox.Text, Colors.Gray); break;
-        }
-
         // Only persist when the text is a complete, parseable color.
         var text = box.Text.Trim();
         if (!(text.StartsWith("#") && (text.Length == 7 || text.Length == 9)))
             return;
 
-        switch (box.Name)
-        {
-            case nameof(BgColorBox): _s.Appearance.Background = text; break;
-            case nameof(FgColorBox): _s.Appearance.Foreground = text; break;
-            default: _s.Appearance.SeparatorColor = text; break;
-        }
+        if (box.Name == nameof(BgColorBox)) _s.Appearance.Background = text;
+        else _s.Appearance.Foreground = text;
 
         _s.Appearance.ThemeName = "Custom";
         UpdateSwatches();
@@ -493,15 +478,13 @@ public partial class SettingsWindow : Window
 
     private void OnPickBackground(object sender, RoutedEventArgs e) => PickColor(nameof(BgColorBox));
     private void OnPickForeground(object sender, RoutedEventArgs e) => PickColor(nameof(FgColorBox));
-    private void OnPickSeparator(object sender, RoutedEventArgs e) => PickColor(nameof(SepColorBox));
 
     private void PickColor(string which)
     {
         var current = which switch
         {
             nameof(BgColorBox) => ColorHelper.Parse(_s.Appearance.Background, Colors.White),
-            nameof(FgColorBox) => ColorHelper.Parse(_s.Appearance.Foreground, Colors.Black),
-            _ => ColorHelper.Parse(_s.Appearance.SeparatorColor, Colors.Gray)
+            _ => ColorHelper.Parse(_s.Appearance.Foreground, Colors.Black)
         };
 
         using var dlg = new Forms.ColorDialog
@@ -517,8 +500,7 @@ public partial class SettingsWindow : Window
         var hex = ColorHelper.ToHex(Color.FromArgb(alpha, c.R, c.G, c.B));
 
         if (which == nameof(BgColorBox)) BgColorBox.Text = hex;
-        else if (which == nameof(FgColorBox)) FgColorBox.Text = hex;
-        else SepColorBox.Text = hex;
+        else FgColorBox.Text = hex;
     }
 
     // ==================================================================
@@ -551,7 +533,18 @@ public partial class SettingsWindow : Window
 
         var a = _s.Appearance;
         a.FontSize = FontSizeSlider.Value;
-        a.BarHeight = HeightSlider.Value;
+
+        // Two stacked rows since brand v2: the bar has to grow with the time font, otherwise
+        // the city name and the big time collide and the group is clipped by the window.
+        var minHeight = AppearanceSettings.MinBarHeight(a.FontSize);
+        if (Math.Abs(HeightSlider.Minimum - minHeight) > 0.5)
+        {
+            HeightSlider.Minimum = minHeight;
+            if (HeightSlider.Value < minHeight)
+                HeightSlider.Value = minHeight;   // re-enters once; the second pass is a no-op
+        }
+
+        a.BarHeight = Math.Max(HeightSlider.Value, minHeight);
         a.CornerRadius = RadiusSlider.Value;
         a.Opacity = Math.Round(OpacitySlider.Value, 2);
 
@@ -566,9 +559,10 @@ public partial class SettingsWindow : Window
     private void LoadSizeFields()
     {
         var a = _s.Appearance;
-        FontSizeSlider.Value = Math.Clamp(a.FontSize, 10, 28);
-        HeightSlider.Value = Math.Clamp(a.BarHeight, 22, 56);
-        RadiusSlider.Value = Math.Clamp(a.CornerRadius, 0, 16);
+        FontSizeSlider.Value = Math.Clamp(a.FontSize, 12, 32);
+        HeightSlider.Minimum = AppearanceSettings.MinBarHeight(FontSizeSlider.Value);
+        HeightSlider.Value = Math.Clamp(a.BarHeight, HeightSlider.Minimum, 96);
+        RadiusSlider.Value = Math.Clamp(a.CornerRadius, 0, 20);
         OpacitySlider.Value = Math.Clamp(a.Opacity, 0.3, 1.0);
         FontSizeValue.Text = ((int)a.FontSize).ToString();
         HeightValue.Text = ((int)a.BarHeight).ToString();

@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using WorldClockBar.Models;
@@ -21,6 +22,30 @@ public partial class MainWindow : Window
     private const uint SwpNomove = 0x0002;
     private const uint SwpNosize = 0x0001;
     private const uint SwpNoactivate = 0x0010;
+
+    // ---------------------------------------------------------------- bar metrics
+    // Brand spec §5.2. The group is now two stacked rows (name above, big time below),
+    // so these are the single source of truth for both the builders and the width maths.
+    private const double NameFontSize = 11;
+    private const double SecondsFontSize = 12;
+    private const double OffsetFontSize = 10;
+    private const double GroupPaddingH = 8;      // gives the hover pill breathing room
+    private const double GroupGap = 26;          // §5.1: replaces the 1px divider
+    private const double RowGap = 2;
+    private const double LocalDotSize = 6;
+    private const double LocalDotGap = 6;
+    private const double OffsetGap = 6;
+    private const double SecondsGap = 4;
+
+    /// <summary>
+    /// Smallest bar height that keeps the two-row group intact at the current time font size.
+    /// Derived, not fixed: a pre-v2 config can pair a tall font with the old 40px bar.
+    /// </summary>
+    private double MinBarHeight => AppearanceSettings.MinBarHeight(_fontSize);
+
+    /// <summary>Widest realistic offset badge ("+13:45h"), used only for width measurement
+    /// so a DST switch can never widen the badge past the already-computed bar width.</summary>
+    private const string OffsetPlaceholder = "+13:45h";
 
     private readonly SettingsService _settingsService;
     private readonly TimeDisplayService _timeService = new();
@@ -46,30 +71,34 @@ public partial class MainWindow : Window
     private Brush _solidBackgroundBrush = Brushes.White;   // opaque fallback (no material)
     private Brush _materialBrush = Brushes.White;          // translucent tint over system acrylic
     private Brush _barOverlayBrush = Brushes.Transparent;
-    private Brush _barBorderBrush = Brushes.Gray;
     private Brush _hoverBrush = Brushes.LightGray;
     private Brush _foregroundBrush = Brushes.Black;
-    private Brush _secondaryBrush = Brushes.Gray;
-    private Brush _separatorBrush = Brushes.Gray;
+    private Brush _secondaryBrush = Brushes.Gray;          // 城市名
+    private Brush _tertiaryBrush = Brushes.Gray;           // 秒 / 时差
+    private Brush _localDotBrush = Brushes.Teal;           // 本地城市标识点（品牌青）
+    private Brush _warningBrush = Brushes.DarkOrange;      // 时区不可用
     private FontFamily _timeFont = new("Segoe UI");
-    private double _fontSize = 15;
+    private double _fontSize = 19;
     private string _timeFormat = "HH:mm:ss";
 
     private sealed class CityItem
     {
         public Border Host = null!;
+        public Ellipse? LocalDot;
         public TextBlock NameBlock = null!;
+        public TextBlock OffsetBlock = null!;
+        public TextBlock TimeBlock = null!;
         public Run MainRun = null!;
+        public TextBlock? SecondsBlock;
         public Run? SecondsRun;
-        public Run? TailRun;
         public TextBlock? TipDate;
         public TextBlock? TipZone;
         public string TimeZoneId = "";
+        public bool IsLocal;
         public bool IsValid = true;
     }
 
     private readonly List<CityItem> _cityItems = new();
-    private readonly List<Border> _separators = new();
 
     public MainWindow(SettingsService settingsService, AppSettings settings)
     {
@@ -160,6 +189,9 @@ public partial class MainWindow : Window
         Dispatcher.BeginInvoke(() =>
         {
             ApplyBarAppearance();
+            // The tray icon follows the taskbar's light/dark setting, not the app theme —
+            // it has to be re-picked here so a taskbar switch does not leave a stale glyph.
+            _tray.RefreshIcon();
             if (_settingsWindow is { IsLoaded: true })
                 _settingsWindow.RefreshSystemTheme();
         });
@@ -237,23 +269,11 @@ public partial class MainWindow : Window
             ColorHelper.Parse(palette.Foreground, Colors.Black));
     }
 
-    private Color EffectiveSeparatorColor()
-    {
-        var a = _settings.Appearance;
-        var palette = ThemeService.ResolveBarPalette(a.ThemeName);
-        var isPreset = ThemeService.BarPalettes.Any(p =>
-            string.Equals(p.Name, a.ThemeName, StringComparison.OrdinalIgnoreCase));
-        return ColorHelper.Parse(
-            isPreset ? palette.SeparatorColor : a.SeparatorColor,
-            ColorHelper.Parse(palette.SeparatorColor, Colors.Gray));
-    }
-
     private void ApplyBarAppearance()
     {
         var a = _settings.Appearance;
         var bg = EffectiveBackgroundColor();
         var fg = EffectiveForegroundColor();
-        var sep = EffectiveSeparatorColor();
         var darkSurface = IsLightForeground(fg);
 
         _barBackgroundBrush = Frozen(bg);
@@ -264,30 +284,32 @@ public partial class MainWindow : Window
         _barOverlayBrush = Frozen(darkSurface
             ? Color.FromArgb(0x16, 0xFF, 0xFF, 0xFF)
             : Color.FromArgb(0x10, 0xFF, 0xFF, 0xFF));
-        _barBorderBrush = Frozen(darkSurface
-            ? Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF)
-            : Color.FromArgb(0x1C, 0x00, 0x00, 0x00));
+        // §5.2 hover: 深色 6% 白 / 浅色 5% 黑.
         _hoverBrush = Frozen(darkSurface
-            ? Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF)
-            : Color.FromArgb(0x0F, 0x00, 0x00, 0x00));
+            ? Color.FromArgb(0x0F, 0xFF, 0xFF, 0xFF)
+            : Color.FromArgb(0x0D, 0x00, 0x00, 0x00));
         _foregroundBrush = Frozen(fg);
-        _secondaryBrush = Frozen(Color.FromArgb(0x9E, fg.R, fg.G, fg.B));
-        _separatorBrush = Frozen(sep);
+        // Run/TextBlock hierarchy on the bar is expressed by colour, not opacity, so the
+        // three levels are pre-mixed against the bar foreground: 时分 100% / 城市名 70% / 秒 44%.
+        _secondaryBrush = Frozen(Color.FromArgb(0xB4, fg.R, fg.G, fg.B));
+        _tertiaryBrush = Frozen(Color.FromArgb(0x70, fg.R, fg.G, fg.B));
+        // Brand spec §2.3/§2.4: the local-city dot is locked to Meridian teal — it must never
+        // follow the system accent, or the icon and the UI would contradict each other.
+        _localDotBrush = Frozen(darkSurface
+            ? Color.FromRgb(0x3A, 0xAF, 0xAA)   // §2.4 dark accent
+            : Color.FromRgb(0x0F, 0x76, 0x6E)); // §2.4 light accent / §2.3 Local
+        _warningBrush = Frozen((Color)ColorConverter.ConvertFromString("#C77700"));
         _timeFont = new FontFamily(string.IsNullOrWhiteSpace(a.FontFamily) ? "Segoe UI" : a.FontFamily);
         _fontSize = Math.Clamp(a.FontSize, 9, 40);
         _timeFormat = ResolveFormat(_settings.Behavior);
 
         UpdateRootBackground();
-        RootBorder.BorderBrush = _barBorderBrush;
         RootBorder.CornerRadius = new CornerRadius(Math.Max(0, a.CornerRadius));
         RootBorder.Opacity = a.Opacity;
-        Height = Math.Max(22, a.BarHeight);
+        Height = Math.Max(MinBarHeight, a.BarHeight);
         // Restyle already-built items.
         foreach (var item in _cityItems)
             StyleCityItem(item, item.IsValid);
-
-        foreach (var sepLine in _separators)
-            sepLine.Background = _separatorBrush;
 
         // The acrylic tint lives in DWM, not in WPF brushes — refresh it on every
         // palette change so theme switches take effect immediately.
@@ -341,70 +363,112 @@ public partial class MainWindow : Window
     //  Bar content: build once, then only text updates per tick
     // ==================================================================
 
+    /// <summary>
+    /// Bar content: build once, then only the text updates per tick. §5.1 replaced the flat
+    /// "name + time on one row, 1px divider between cities" strip with one group per city —
+    /// name row on top, big time row underneath, whitespace instead of dividers.
+    /// </summary>
     private void BuildBarItems()
     {
         ClocksPanel.Items.Clear();
         _cityItems.Clear();
-        _separators.Clear();
 
         var clocks = _settings.Clocks;
+        var localZoneId = SafeLocalZoneId();
+
         for (var i = 0; i < clocks.Count; i++)
         {
-            if (i > 0)
-            {
-                var sepLine = new Border
-                {
-                    Width = 1,
-                    Height = Math.Max(14, _settings.Appearance.BarHeight - 20),
-                    Background = _separatorBrush,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                _separators.Add(sepLine);
-                ClocksPanel.Items.Add(sepLine);
-            }
-
             var clock = clocks[i];
+            var label = string.IsNullOrWhiteSpace(clock.Label) ? clock.TimeZoneId : clock.Label.Trim();
+            var isLocal = localZoneId.Length > 0
+                          && string.Equals(clock.TimeZoneId, localZoneId, StringComparison.OrdinalIgnoreCase);
+
             var item = new CityItem
             {
                 TimeZoneId = clock.TimeZoneId,
+                IsLocal = isLocal,
                 NameBlock = new TextBlock
                 {
-                    Text = string.IsNullOrWhiteSpace(clock.Label) ? clock.TimeZoneId : clock.Label.Trim(),
+                    Text = label,
                     FontFamily = _timeFont,
-                    FontSize = 12,
-                    // Rest the name on the time's baseline (descender ≈ 0.2em), like the mockup.
-                    Margin = new Thickness(0, 0, 9, Math.Round(_fontSize * 0.2)),
-                    VerticalAlignment = VerticalAlignment.Bottom
+                    FontSize = NameFontSize,
+                    VerticalAlignment = VerticalAlignment.Center
+                },
+                OffsetBlock = new TextBlock
+                {
+                    FontFamily = _timeFont,
+                    FontSize = OffsetFontSize,
+                    Margin = new Thickness(OffsetGap, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center
                 }
             };
 
-            var timeBlock = new TextBlock
+            // ---- row 1: [品牌青圆点] 城市名 · 时差 ----
+            var nameRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            if (isLocal)
+            {
+                item.LocalDot = new Ellipse
+                {
+                    Width = LocalDotSize,
+                    Height = LocalDotSize,
+                    Margin = new Thickness(0, 0, LocalDotGap, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                nameRow.Children.Add(item.LocalDot);
+            }
+            nameRow.Children.Add(item.NameBlock);
+            nameRow.Children.Add(item.OffsetBlock);
+
+            // ---- row 2: 大号时分 + 小号秒（两条 TextBlock 底对齐，§5.2）----
+            var timeRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Margin = new Thickness(0, RowGap, 0, 0)
+            };
+
+            item.TimeBlock = new TextBlock
             {
                 FontFamily = _timeFont,
                 FontSize = _fontSize,
                 FontWeight = FontWeights.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Bottom
             };
             // Tabular digits: "1" occupies the same advance width as "8", so seconds
             // tick without the digits wobbling.
-            timeBlock.Typography.NumeralAlignment = FontNumeralAlignment.Tabular;
+            item.TimeBlock.Typography.NumeralAlignment = FontNumeralAlignment.Tabular;
             item.MainRun = new Run("--:--");
-            timeBlock.Inlines.Add(item.MainRun);
+            item.TimeBlock.Inlines.Add(item.MainRun);
+            timeRow.Children.Add(item.TimeBlock);
+
             if (_timeFormat.Contains(":ss", StringComparison.Ordinal))
             {
-                item.SecondsRun = new Run(":00");
-                timeBlock.Inlines.Add(item.SecondsRun);
-                var tail = TailAfterSeconds(_timeFormat);
-                if (!string.IsNullOrEmpty(tail))
+                item.SecondsBlock = new TextBlock
                 {
-                    item.TailRun = new Run("");
-                    timeBlock.Inlines.Add(item.TailRun);
-                }
+                    FontFamily = _timeFont,
+                    FontSize = SecondsFontSize,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    // Sit the seconds on the big time's baseline instead of its descender
+                    // (≈0.2em) — same trick the city name used to use.
+                    Margin = new Thickness(SecondsGap, 0, 0, Math.Round(_fontSize * 0.2))
+                };
+                item.SecondsBlock.Typography.NumeralAlignment = FontNumeralAlignment.Tabular;
+                item.SecondsRun = new Run(":00");
+                item.SecondsBlock.Inlines.Add(item.SecondsRun);
+                timeRow.Children.Add(item.SecondsBlock);
             }
 
-            var content = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-            content.Children.Add(item.NameBlock);
-            content.Children.Add(timeBlock);
+            var group = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            group.Children.Add(nameRow);
+            group.Children.Add(timeRow);
 
             var tip = new StackPanel { Orientation = Orientation.Vertical };
             item.TipDate = new TextBlock { FontSize = 13, FontWeight = FontWeights.SemiBold };
@@ -413,18 +477,22 @@ public partial class MainWindow : Window
             item.TipZone.SetResourceReference(TextBlock.ForegroundProperty, "Fluent.TextSecondary");
             tip.Children.Add(item.TipDate);
             tip.Children.Add(item.TipZone);
+
             item.Host = new Border
             {
                 CornerRadius = new CornerRadius(6),
-                Padding = new Thickness(12, 0, 12, 0),
+                Padding = new Thickness(GroupPaddingH, 4, GroupPaddingH, 4),
                 VerticalAlignment = VerticalAlignment.Center,
                 Background = Brushes.Transparent,
-                ToolTip = new ToolTip { Content = tip, Placement = System.Windows.Controls.Primitives.PlacementMode.Top }
+                Child = group,
+                ToolTip = new ToolTip { Content = tip, Placement = System.Windows.Controls.Primitives.PlacementMode.Top },
+                // §5.1: 组间靠留白划分。StackPanel 不合并相邻 Margin，所以只在第二个
+                // 之后的每个组上加一个完整间距，视觉间隔正好等于 GroupGap。
+                Margin = new Thickness(i == 0 ? 0 : GroupGap, 0, 0, 0)
             };
             item.Host.MouseEnter += (_, _) => item.Host.Background = _hoverBrush;
             item.Host.MouseLeave += (_, _) => item.Host.Background = Brushes.Transparent;
 
-            item.Host.Child = content;
             ClocksPanel.Items.Add(item.Host);
             _cityItems.Add(item);
             StyleCityItem(item, true);
@@ -434,45 +502,59 @@ public partial class MainWindow : Window
         UpdateTimes();
     }
 
+    private static string SafeLocalZoneId()
+    {
+        try
+        {
+            return TimeZoneInfo.Local.Id;
+        }
+        catch
+        {
+            return "";
+        }
+    }
+
+    /// <summary>§5.1: 城市名行右侧的时差标识（本地 / +8h / −5:30h）。U+2212 minus matches the design.</summary>
+    private static string FormatOffset(TimeSpan delta)
+    {
+        if (delta == TimeSpan.Zero)
+            return "本地";
+
+        var sign = delta < TimeSpan.Zero ? "\u2212" : "+";
+        delta = delta.Duration();
+        return delta.Minutes == 0
+            ? $"{sign}{delta.Hours}h"
+            : $"{sign}{delta.Hours}:{delta.Minutes:00}h";
+    }
+
     private void StyleCityItem(CityItem item, bool isValid)
     {
         item.IsValid = isValid;
-        item.NameBlock.Foreground = isValid ? _secondaryBrush : Frozen(Color.FromRgb(0xFF, 0x8C, 0x00));
 
         if (!isValid)
         {
-            item.MainRun.Foreground = Frozen(Color.FromRgb(0xFF, 0x8C, 0x00));
-            if (item.SecondsRun is not null) item.SecondsRun.Foreground = item.MainRun.Foreground;
-            if (item.TailRun is not null) item.TailRun.Foreground = item.MainRun.Foreground;
+            item.NameBlock.Foreground = _warningBrush;
+            item.OffsetBlock.Foreground = _warningBrush;
+            item.MainRun.Foreground = _warningBrush;
+            if (item.SecondsRun is not null) item.SecondsRun.Foreground = _warningBrush;
+            if (item.LocalDot is not null) item.LocalDot.Fill = _warningBrush;
             return;
         }
 
-        // Seconds are dimmed to ~52% via a translucent copy of the foreground color
-        // (Run has no Opacity property of its own).
+        item.NameBlock.Foreground = _secondaryBrush;
+        item.OffsetBlock.Foreground = _tertiaryBrush;
         item.MainRun.Foreground = _foregroundBrush;
         if (item.SecondsRun is not null)
-        {
-            var c = ((SolidColorBrush)_foregroundBrush).Color;
-            item.SecondsRun.Foreground = Frozen(Color.FromArgb((byte)(c.A * 0.52), c.R, c.G, c.B));
-        }
-        if (item.TailRun is not null)
-            item.TailRun.Foreground = _secondaryBrush;
-    }
-
-    private static string? TailAfterSeconds(string format)
-    {
-        var idx = format.IndexOf(":ss", StringComparison.Ordinal);
-        if (idx < 0)
-            return null;
-        var tail = format[(idx + 3)..];
-        // "h:mm:ss tt" → tail is " tt"; trim leading spaces into the run text.
-        return tail.Length > 0 ? tail : null;
+            item.SecondsRun.Foreground = _tertiaryBrush;
+        if (item.LocalDot is not null)
+            item.LocalDot.Fill = _localDotBrush;
     }
 
     private void UpdateTimes()
     {
         var lines = _timeService.BuildLines(_settings.Clocks, _settings.Behavior);
         var utcNow = DateTime.UtcNow;
+        var localOffset = TimeZoneInfo.Local.GetUtcOffset(utcNow);
 
         for (var i = 0; i < lines.Count && i < _cityItems.Count; i++)
         {
@@ -481,9 +563,9 @@ public partial class MainWindow : Window
 
             if (!line.IsValid)
             {
-                item.MainRun.Text = "--:--:--";
+                item.MainRun.Text = "--:--";
                 if (item.SecondsRun is not null) item.SecondsRun.Text = "";
-                if (item.TailRun is not null) item.TailRun.Text = "";
+                item.OffsetBlock.Text = "";
                 StyleCityItem(item, false);
             }
             else
@@ -492,7 +574,8 @@ public partial class MainWindow : Window
                 StyleCityItem(item, true);
             }
 
-            // Tooltip: full local date + zone info for that city.
+            // Tooltip + offset badge share one zone lookup. The badge is refreshed here
+            // rather than only at build time so a DST switch is picked up within a second.
             try
             {
                 var zone = TimeZoneInfo.FindSystemTimeZoneById(item.TimeZoneId);
@@ -501,37 +584,39 @@ public partial class MainWindow : Window
                 var offset = zone.GetUtcOffset(local); // includes DST
                 var sign = offset >= TimeSpan.Zero ? "+" : "-";
                 item.TipZone!.Text = $"{zone.Id} · UTC{sign}{Math.Abs(offset.Hours)}:{Math.Abs(offset.Minutes):00}";
+                if (line.IsValid)
+                    item.OffsetBlock.Text = FormatOffset(offset - localOffset);
             }
             catch
             {
                 item.TipDate!.Text = "";
                 item.TipZone!.Text = "时区不可用";
+                item.OffsetBlock.Text = "";
             }
         }
     }
 
-    /// <summary>Split "HH:mm:ss …" text so the seconds run can be dimmed.</summary>
+    /// <summary>Split "HH:mm:ss …" so the seconds land in their own small TextBlock (§5.2).</summary>
     private void SplitTime(string text, CityItem item)
     {
         var idx = _timeFormat.IndexOf(":ss", StringComparison.Ordinal);
         if (idx >= 0 && text.Length >= idx + 3 && string.IsNullOrEmpty(_settings.Behavior.DateFormat))
         {
             item.MainRun.Text = text[..idx];
-            item.SecondsRun!.Text = text.Substring(idx, 3);
-            if (item.TailRun is not null)
-                item.TailRun.Text = text[(idx + 3)..];
+            item.SecondsRun!.Text = text[idx..];
         }
         else
         {
             item.MainRun.Text = text;
             if (item.SecondsRun is not null) item.SecondsRun.Text = "";
-            if (item.TailRun is not null) item.TailRun.Text = "";
         }
     }
 
     /// <summary>
     /// Constant-width measurement: measure with every digit replaced by "8" so the
     /// bar never resizes as seconds tick. Text updates alone don't re-measure.
+    /// Measures the wider of the two group rows per city, then adds the group padding
+    /// and the inter-group gaps that replaced the old divider lines.
     /// </summary>
     private void ComputeBarWidth()
     {
@@ -539,31 +624,59 @@ public partial class MainWindow : Window
         var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
         var nameTypeface = new Typeface(_timeFont, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
         var timeTypeface = new Typeface(_timeFont, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
-        var placeholder = PlaceholderFor(ResolveFormat(_settings.Behavior));
+
+        // The bar splits "HH:mm" and ":ss" into two TextBlocks, so the placeholder has to be
+        // split the same way. Measuring the whole "88:88:88" and *then* adding the seconds
+        // block would reserve the seconds twice and leave a visible gap inside every group.
+        var format = ResolveFormat(_settings.Behavior);
+        var placeholder = PlaceholderFor(format);
+        var ssIndex = format.IndexOf(":ss", StringComparison.Ordinal);
+        var hasDate = !string.IsNullOrWhiteSpace(_settings.Behavior.DateFormat);
+        // SplitTime only splits when there is no date prefix, so the widths must agree.
+        var splits = ssIndex >= 0 && !hasDate;
+
+        var mainPlaceholder = splits
+            ? placeholder[..ssIndex]
+            : hasDate ? PlaceholderFor(_settings.Behavior.DateFormat!) + " " + placeholder
+            : placeholder;
+
+        var timeRowWidth = Measure(timeTypeface, mainPlaceholder, _fontSize, dpi);
+        if (splits)
+            timeRowWidth += SecondsGap + Measure(nameTypeface, ":00", SecondsFontSize, dpi);
+
+        var localZoneId = SafeLocalZoneId();
 
         double textWidth = 0;
         foreach (var clock in _settings.Clocks)
         {
             var label = string.IsNullOrWhiteSpace(clock.Label) ? clock.TimeZoneId : clock.Label.Trim();
-            textWidth += Measure(nameTypeface, label, 12, dpi);
-            textWidth += 9; // gap between name and time
-            textWidth += Measure(timeTypeface, placeholder, _fontSize, dpi);
+            var isLocal = localZoneId.Length > 0
+                          && string.Equals(clock.TimeZoneId, localZoneId, StringComparison.OrdinalIgnoreCase);
+
+            // Row 1 is normally the narrower row, but a long city name can beat the time —
+            // measure both and take the wider one.
+            var nameRowWidth =
+                (isLocal ? LocalDotSize + LocalDotGap : 0)
+                + Measure(nameTypeface, label, NameFontSize, dpi)
+                + OffsetGap
+                + Measure(nameTypeface, OffsetPlaceholder, OffsetFontSize, dpi);
+
+            textWidth += Math.Max(nameRowWidth, timeRowWidth) + GroupPaddingH * 2;
         }
 
         // Safety: if font measurement fails (composite family quirk), fall back to a
         // generous per-city estimate so the bar never clips.
-        if (textWidth < _settings.Clocks.Count * 30)
-            textWidth = _settings.Clocks.Count * 95;
+        if (textWidth < _settings.Clocks.Count * 40)
+            textWidth = _settings.Clocks.Count * 120;
 
         var chrome = RootBorder.Padding.Left + RootBorder.Padding.Right
                      + RootBorder.BorderThickness.Left + RootBorder.BorderThickness.Right
-                     + _separators.Count * 1
+                     + Math.Max(0, _settings.Clocks.Count - 1) * GroupGap
                      + 2; // safety
-        var cityPadding = _cityItems.Count * 24; // 12 left + 12 right per city Border
 
-        _contentWidth = Math.Max(40, Math.Ceiling(textWidth + cityPadding + chrome));
+        _contentWidth = Math.Max(64, Math.Ceiling(textWidth + chrome));
         Width = _contentWidth;
-        Height = Math.Max(22, a.BarHeight);
+        Height = Math.Max(MinBarHeight, a.BarHeight);
     }
 
     private static double Measure(Typeface typeface, string text, double size, double pixelsPerDip)
@@ -593,7 +706,7 @@ public partial class MainWindow : Window
     private void Reposition()
     {
         Width = _contentWidth;
-        Height = Math.Max(22, _settings.Appearance.BarHeight);
+        Height = Math.Max(MinBarHeight, _settings.Appearance.BarHeight);
         _placement.PlaceBar(this, _settings, _contentWidth);
     }
 

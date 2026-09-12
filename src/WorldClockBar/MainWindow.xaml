@@ -25,11 +25,13 @@
                             CornerRadius="0"
                             UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
+    <!-- 品牌规格 §5.2 没有时钟条边框这一项（§1 也禁用多余装饰），所以不再画 1px 描边。
+         RootBorder 拉伸填满窗口：条宽是按占位串预算出来的（含取整余量），拉伸 + 内容居中
+         能把这点余量均分到左右两侧，否则全堆在右边，看起来右边"边框"更宽。 -->
     <Border x:Name="RootBorder"
-            CornerRadius="8"
-            Padding="2,0"
-            BorderThickness="1"
-            HorizontalAlignment="Left"
+            CornerRadius="12"
+            Padding="16,0"
+            BorderThickness="0"
             Cursor="SizeAll">
         <Border.ContextMenu>
             <ContextMenu>
@@ -67,7 +69,7 @@
                 </MenuItem>
             </ContextMenu>
         </Border.ContextMenu>
-        <ItemsControl x:Name="ClocksPanel" VerticalAlignment="Center">
+        <ItemsControl x:Name="ClocksPanel" VerticalAlignment="Center" HorizontalAlignment="Center">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <StackPanel Orientation="Horizontal"/>

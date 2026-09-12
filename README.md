@@ -5,11 +5,11 @@
 **Windows 多时区时钟条 · 常驻任务栏上方**
 
 在任务栏上方常显多个国家/城市的时间（时分秒），WinUI / Fluent 风格界面，
-深浅色与系统强调色自适应，支持自由拖拽与边缘吸附。完全本地换算，**不访问网络**。
+深浅色自适应、强调色锁定品牌青，支持自由拖拽与边缘吸附。完全本地换算，**不访问网络**。
 
 [简体中文](README.md) · [English](README.en.md)
 
-![Version](https://img.shields.io/badge/version-1.1.3-2563EB)
+![Version](https://img.shields.io/badge/version-1.2.0-0F766E)
 ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -26,9 +26,9 @@
 
 | 功能 | 说明 |
 |------|------|
-| 多时区常显 | 横向显示多个城市，格式 `HH:mm:ss`，秒数弱化、等宽数字防抖动 |
+| 多时区常显 | 城市成组：上行城市名 + 时差标识，下行大号 `HH:mm` 与小号秒；等宽数字防抖动 |
 | Fluent 外观 | WinUI 风格：Acrylic 时钟条、Mica 设置窗口（Win11），Win10 自动降级纯色 |
-| 主题系统 | 跟随系统深浅色 + 系统强调色；7 套预设（浅色/深色/高对比/雾蓝/暖砂/玻璃）+ 自定义颜色 |
+| 品牌青主题 | 「经线 Meridian」品牌色 `#0F766E`；4 套预设（跟随系统/品牌浅色/品牌深色/高对比）+ 自定义颜色 |
 | 本机换算 | 使用系统时钟 + `TimeZoneInfo`，**不访问网络** |
 | 始终置顶 | 独立置顶窗口，定时巩固 Z 序，避免被普通窗口盖住 |
 | 自由拖拽 | 可在**工作区**（任务栏以外区域）任意拖动 |
@@ -37,7 +37,7 @@
 | 城市管理 | 行内改名、下拉换时区、⋮ 菜单排序/删除 |
 | 多显示器 | 可选显示器；拖拽时可跨屏 |
 | 开机自启 | 可选，写入当前用户 Run 注册表项 |
-| 系统托盘 | 找不到窗口时可右键托盘「显示时钟条」 |
+| 系统托盘 | 品牌托盘图标（随任务栏深浅色切换白/墨两版）；找不到窗口时可右键「显示时钟条」 |
 | 单实例 | 防止重复启动 |
 
 **默认配置：** 英国（`GMT Standard Time`）· 跟随系统深浅色 · 右下角贴边
@@ -52,13 +52,13 @@
 |------|--------|
 | ![设置窗口 · 时钟页](docs/images/settings.png) | ![设置窗口 · 个性化页](docs/images/settings-personalization.png) |
 
-UI 按 Windows 11 / WinUI (Fluent Design) 规范设计（v1.1）：
+UI 按 Windows 11 / WinUI (Fluent Design) 规范设计（v2 品牌版）：
 
-- **时钟条**：Acrylic 毛玻璃细长条，城市名 60% 透明度分层，秒数弱化，hover 单城市高亮并显示完整日期与时区
-- **设置窗口**：Mica 材质 + 自绘标题栏 + NavigationView 左导航（时钟 / 个性化 / 行为 / 关于）+ Win11 设置式圆角卡片
+- **时钟条**：Acrylic 毛玻璃条，城市成组（上行城市名 + 时差标识 / 下行大号时间 + 小号秒），组间 26px 留白划分，本地城市带品牌青圆点，hover 单组高亮并显示完整日期与时区
+- **设置窗口**：Mica 材质 + 自绘标题栏 + 导航顶部品牌标志 + NavigationView 左导航（时钟 / 个性化 / 行为 / 关于）+ Win11 设置式圆角卡片，选中态为品牌青指示条
 - **全部控件**（开关、下拉、滑杆、右键菜单、Tooltip、滚动条）重绘为 Fluent 观感
 
-设计规格与三方案对比见 [docs/ui-redesign/design-proposals.md](docs/ui-redesign/design-proposals.md)，高保真预览见 [docs/ui-redesign/mockups.html](docs/ui-redesign/mockups.html)。
+品牌规格与图标资产见 [docs/brand/README.md](docs/brand/README.md)，早期三方案对比见 [docs/ui-redesign/design-proposals.md](docs/ui-redesign/design-proposals.md)。
 
 ---
 
@@ -176,14 +176,14 @@ dotnet run --project src\WorldClockBar -c Release
   ],
   "appearance": {
     "themeName": "System",
-    "background": "#E9FAFBFC",
-    "foreground": "#FF1B1B1B",
+    "background": "#EBFFFFFF",
+    "foreground": "#FF14201E",
     "separatorColor": "#24000000",
     "fontFamily": "Segoe UI Variable Display, Segoe UI",
-    "fontSize": 15,
+    "fontSize": 19,
     "opacity": 1.0,
-    "barHeight": 40,
-    "cornerRadius": 8,
+    "barHeight": 60,
+    "cornerRadius": 12,
     "horizontalAlignment": "Right",
     "offsetX": 4,
     "offsetY": 2,
@@ -205,12 +205,13 @@ dotnet run --project src\WorldClockBar -c Release
 | 字段 | 含义 |
 |------|------|
 | `clocks` | 城市显示名 + Windows 时区 ID |
-| `appearance.themeName` | `System`（跟随系统）/ `Light` / `Dark` / `HighContrast` / `MistBlue` / `WarmSand` / `Glass` / `Custom`（手动改过颜色） |
+| `appearance.themeName` | `System`（跟随系统）/ `Light`（品牌浅色）/ `Dark`（品牌深色）/ `HighContrast` / `Custom`（手动改过颜色） |
 | `freePosition` / `posX` / `posY` | 拖拽后的自由位置（相对工作区） |
 | `horizontalAlignment` + `offsetX/Y` | 非自由位置时的贴边对齐 |
 | `edgeSnapDistance` | 边缘吸附距离（DIP） |
 
-旧版本配置文件无需修改即可升级：缺失字段自动取默认值；`themeName` 缺省视为 `System`（跟随系统深浅色）。
+旧版本配置文件无需修改即可升级：缺失字段自动取默认值；`themeName` 缺省视为 `System`（跟随系统深浅色）；
+旧的装饰性预设 `MistBlue` / `WarmSand` / `Glass` 已随品牌 v2 移除，读到就迁到品牌浅色。`separatorColor` 字段保留但不再渲染（城市之间已改为留白划分）。
 
 时区 ID 可在设置界面的下拉列表中选择，无需手写。
 

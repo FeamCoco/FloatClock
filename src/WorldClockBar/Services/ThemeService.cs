@@ -30,15 +30,18 @@ public static class ThemeService
 
     public sealed record BarPalette(string Name, string Background, string Foreground, string SeparatorColor);
 
+    /// <summary>
+    /// Clock-bar presets. Brand spec §2.4 / §7: the decorative palettes (雾蓝 / 暖砂 / 玻璃)
+    /// were dropped — the bar now has exactly two brand faces plus a system follow and a
+    /// high-contrast escape hatch. Values are #AARRGGBB; the bar alpha comes from §2.4
+    /// <c>barBg</c> (light 92% white, dark 86% #111817).
+    /// </summary>
     public static readonly IReadOnlyList<BarPalette> BarPalettes = new[]
     {
-        new BarPalette("System",       "#E9FAFBFC", "#FF1B1B1B", "#24000000"),
-        new BarPalette("Light",        "#E9FAFBFC", "#FF1B1B1B", "#24000000"),
-        new BarPalette("Dark",         "#CC212124", "#FFF3F5F8", "#2BFFFFFF"),
+        new BarPalette("System",       "#EBFFFFFF", "#FF14201E", "#24000000"),
+        new BarPalette("Light",        "#EBFFFFFF", "#FF14201E", "#24000000"),
+        new BarPalette("Dark",         "#DB111817", "#FFEAF3F1", "#2BFFFFFF"),
         new BarPalette("HighContrast", "#FF000000", "#FFFFE000", "#80FFFFFF"),
-        new BarPalette("MistBlue",     "#E6DCE9F5", "#FF2A4158", "#332A4158"),
-        new BarPalette("WarmSand",     "#E6F2E4D2", "#FF5C4326", "#335C4326"),
-        new BarPalette("Glass",        "#99FFFFFF", "#FF33343D", "#3333343D"),
     };
 
     public static string SystemThemeName => _isDark ? "Dark" : "Light";
@@ -75,27 +78,28 @@ public static class ThemeService
         return false;
     }
 
-    /// <summary>System accent color, decoded from the DWM registry value; falls back to Win11 blue.</summary>
-    public static Color GetAccentColor()
+    /// <summary>
+    /// Whether the taskbar itself is dark — this is <c>SystemUsesLightTheme</c>, a separate
+    /// registry value from the app theme. The brand spec §4 calls out that the tray icon must
+    /// match the taskbar, not the app, because a customised taskbar colour can disagree.
+    /// </summary>
+    public static bool IsTaskbarDark
     {
-        try
+        get
         {
-            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\DWM");
-            if (key?.GetValue("ColorizationColor") is int abgr)
+            try
             {
-                // Stored as little-endian AABBGGRR.
-                var b = BitConverter.GetBytes(abgr);
-                var c = Color.FromArgb(0xFF, b[0], b[1], b[2]);
-                // Sanity: reject near-black/white garbage, keep hue only when plausible.
-                if (c.R + c.G + c.B > 40 && c.R + c.G + c.B < 740)
-                    return c;
+                using var key = Registry.CurrentUser.OpenSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+                if (key?.GetValue("SystemUsesLightTheme") is int light)
+                    return light == 0;
             }
+            catch
+            {
+                // fall through
+            }
+            return _isDark;
         }
-        catch
-        {
-            // fall through
-        }
-        return Color.FromRgb(0x00, 0x67, 0xC0);
     }
 
     /// <summary>Install app-wide Fluent brushes and OS theme hooks. Call once at startup.</summary>
@@ -125,19 +129,15 @@ public static class ThemeService
         }
     }
 
-    /// <summary>Write light/dark brush tokens into application resources.</summary>
+    /// <summary>
+    /// Write light/dark brush tokens into application resources. Every value is taken
+    /// from the brand spec §2.4 role map, so the settings window, the switches, the links
+    /// and the bar's "local city" dot all resolve to the same Meridian teal.
+    /// The system accent is deliberately no longer consulted — see §2.4's closing note.
+    /// </summary>
     public static void ApplyAppTheme()
     {
         _isDark = ReadSystemPrefersDark();
-        var accent = GetAccentColor();
-
-        // On dark surfaces Win11 lifts the accent for contrast.
-        var accentBright = _isDark && accent is { R: < 120, G: < 160, B: < 220 }
-            ? Color.FromRgb(
-                (byte)Math.Min(255, accent.R + 110),
-                (byte)Math.Min(255, accent.G + 110),
-                (byte)Math.Min(255, accent.B + 110))
-            : accent;
 
         var res = Application.Current.Resources;
         void Set(string key, Color c) =>
@@ -145,59 +145,62 @@ public static class ThemeService
 
         if (_isDark)
         {
-            // 方案二「雾层微抬升」：三阶不透明色阶（窗口 → 卡片 → 控件，逐层亮一档）。
-            // 表面一律不用半透明白——背板未接管时半透明会直接压在黑底上，渲染成黑色块。
-            Set("Fluent.WindowBg", From("#FF1C1C20"));
-            Set("Fluent.CardBg", From("#FF28282D"));
-            Set("Fluent.CardBgStrong", From("#FF2E2E34"));
-            Set("Fluent.CardBorder", From("#0FFFFFFF"));
-            Set("Fluent.Divider", From("#0FFFFFFF"));
-            Set("Fluent.TextPrimary", From("#FFF2F3F6"));
-            Set("Fluent.TextSecondary", From("#FFA9AEB8"));
-            Set("Fluent.TextTertiary", From("#FF6F747D"));
-            Set("Fluent.Accent", accentBright);
-            Set("Fluent.AccentText", From("#FF0C2733"));
+            // §2.4 dark column: cyan-tinted neutrals, never pure grey — pure grey next to
+            // the teal reads as dirty yellow, which is the easiest way to wreck this palette.
+            Set("Fluent.WindowBg", From("#111817"));
+            Set("Fluent.CardBg", From("#1A2220"));
+            Set("Fluent.CardBgStrong", From("#222C2A"));
+            Set("Fluent.CardBorder", From("#2A3432"));
+            Set("Fluent.Divider", From("#222C2A"));
+            Set("Fluent.TextPrimary", From("#EAF3F1"));
+            Set("Fluent.TextSecondary", From("#9FB0AD"));
+            Set("Fluent.TextTertiary", From("#6E807D"));
+            Set("Fluent.Accent", From("#3AAFAA"));
+            Set("Fluent.AccentHover", From("#6FCEC6"));
+            Set("Fluent.AccentText", From("#04211F"));
+            Set("Fluent.ControlBg", From("#273130"));
+            Set("Fluent.ControlBorder", From("#2A3432"));
+            Set("Fluent.NavBg", From("#161D1C"));
+            Set("Fluent.SurfaceSolid", From("#222C2A"));
             Set("Fluent.SubtleHover", From("#0DFFFFFF"));
             Set("Fluent.SubtlePressed", From("#08FFFFFF"));
-            Set("Fluent.ControlBg", From("#FF38383F"));
-            Set("Fluent.ControlBorder", From("#14FFFFFF"));
-            Set("Fluent.NavBg", From("#06FFFFFF"));
-            Set("Fluent.SurfaceSolid", From("#FF2A2A30"));
             Set("Fluent.RowHover", From("#14FFFFFF"));
-            Set("Fluent.RowSelected", From("#1FFFFFFF"));
-            Set("Fluent.Inactive", From("#FF8A8F98"));
-            Set("Fluent.SwitchOff", From("#FF57575F"));
-            Set("Fluent.TrackBg", From("#40FFFFFF"));
+            // Selection is a brand tint rather than a grey film — §6.2 asks for 浅底 + 主色文字.
+            Set("Fluent.RowSelected", Color.FromArgb(0x33, 0x3A, 0xAF, 0xAA));
+            Set("Fluent.Inactive", From("#6E807D"));
+            Set("Fluent.SwitchOff", From("#3A4746"));
+            Set("Fluent.TrackBg", From("#33FFFFFF"));
         }
         else
         {
-            // 浅色同样用不透明表面，杜绝同一类背板回退问题。
-            Set("Fluent.WindowBg", From("#F3F3F3"));
-            Set("Fluent.CardBg", From("#FFFBFBFC"));
-            Set("Fluent.CardBgStrong", From("#FFFFFFFF"));
-            Set("Fluent.CardBorder", From("#0F000000"));
-            Set("Fluent.Divider", From("#12000000"));
-            Set("Fluent.TextPrimary", From("#FF1B1B1B"));
-            Set("Fluent.TextSecondary", From("#FF5D6470"));
-            Set("Fluent.TextTertiary", From("#FF8A9099"));
-            Set("Fluent.Accent", accent);
-            Set("Fluent.AccentText", From("#FFFFFFFF"));
+            Set("Fluent.WindowBg", From("#F2F5F5"));
+            Set("Fluent.CardBg", From("#FFFFFF"));
+            Set("Fluent.CardBgStrong", From("#FFFFFF"));
+            Set("Fluent.CardBorder", From("#E2E8E8"));
+            Set("Fluent.Divider", From("#EDF2F2"));
+            Set("Fluent.TextPrimary", From("#14201E"));
+            Set("Fluent.TextSecondary", From("#526260"));
+            Set("Fluent.TextTertiary", From("#8A9A98"));
+            Set("Fluent.Accent", From("#0F766E"));
+            Set("Fluent.AccentHover", From("#178B86"));
+            Set("Fluent.AccentText", From("#FFFFFF"));
+            Set("Fluent.ControlBg", From("#FFFFFF"));
+            Set("Fluent.ControlBorder", From("#E2E8E8"));
+            Set("Fluent.NavBg", From("#EBF0F0"));
+            Set("Fluent.SurfaceSolid", From("#FFFFFF"));
             Set("Fluent.SubtleHover", From("#0A000000"));
             Set("Fluent.SubtlePressed", From("#05000000"));
-            Set("Fluent.ControlBg", From("#FFFFFFFF"));
-            Set("Fluent.ControlBorder", From("#14000000"));
-            Set("Fluent.NavBg", From("#66FFFFFF"));
-            Set("Fluent.SurfaceSolid", From("#FFFAFAFB"));
             Set("Fluent.RowHover", From("#0F000000"));
-            Set("Fluent.RowSelected", From("#17000000"));
-            Set("Fluent.Inactive", From("#FF9A9FA8"));
+            Set("Fluent.RowSelected", Color.FromArgb(0x2E, 0x0F, 0x76, 0x6E));
+            Set("Fluent.Inactive", From("#8A9A98"));
             Set("Fluent.SwitchOff", From("#59000000"));
-            Set("Fluent.TrackBg", From("#33000000"));
+            Set("Fluent.TrackBg", From("#26000000"));
         }
 
-        Set("Fluent.Error", From("#FFC42B1C"));
-        Set("Fluent.Success", From("#FF0F7B0F"));
-        Set("Fluent.CloseHover", From("#FFC42B1C"));
+        Set("Fluent.Error", From("#C42B1C"));
+        Set("Fluent.Success", From("#0F7B0F"));
+        Set("Fluent.Warning", From("#C77700"));
+        Set("Fluent.CloseHover", From("#C42B1C"));
     }
 
     private static Color From(string hex) => (Color)ColorConverter.ConvertFromString(hex);

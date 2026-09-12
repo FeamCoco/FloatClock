@@ -6,3 +6,6 @@ publish-sc/
 *.user
 *.suo
 *.DotSettings.user
+
+# 本地 agent 工作目录（会话记忆 / 临时产物），不随仓库分发
+.workbuddy/

@@ -86,17 +86,35 @@ public sealed class SettingsService
         }
 
         var a = settings.Appearance;
-        if (a.FontSize < 8) a.FontSize = 8;
-        if (a.FontSize > 48) a.FontSize = 48;
-        if (a.BarHeight < 20) a.BarHeight = 20;
-        if (a.BarHeight > 80) a.BarHeight = 80;
+        if (a.FontSize < 12) a.FontSize = 12;
+        if (a.FontSize > 32) a.FontSize = 32;
+        // The bar holds two stacked rows since brand v2 (§5.1), so its minimum height is
+        // derived from the time font size — a pre-v2 config with barHeight 40 would otherwise
+        // squeeze the city name into the big time. Derive after the font size is settled.
+        var minBarHeight = AppearanceSettings.MinBarHeight(a.FontSize);
+        if (a.BarHeight < minBarHeight) a.BarHeight = minBarHeight;
+        if (a.BarHeight > 96) a.BarHeight = 96;
         if (a.Opacity < 0.2) a.Opacity = 0.2;
         if (a.Opacity > 1.0) a.Opacity = 1.0;
         if (string.IsNullOrWhiteSpace(a.FontFamily)) a.FontFamily = "Segoe UI";
         if (string.IsNullOrWhiteSpace(a.HorizontalAlignment)) a.HorizontalAlignment = "Right";
 
+        // 品牌规格 §7：雾蓝 / 暖砂 / 玻璃三套装饰性预设已删除，旧配置就近迁到品牌浅色面。
+        if (IsRetiredBarPreset(a.ThemeName))
+            a.ThemeName = "Light";
+
         var b = settings.Behavior;
         if (string.IsNullOrWhiteSpace(b.TimeFormat))
             b.TimeFormat = b.ShowSeconds ? "HH:mm:ss" : "HH:mm";
+    }
+
+    /// <summary>Presets that existed before brand v2 and were dropped in §7.</summary>
+    private static bool IsRetiredBarPreset(string? themeName)
+    {
+        if (string.IsNullOrWhiteSpace(themeName))
+            return false;
+        return themeName.Equals("MistBlue", StringComparison.OrdinalIgnoreCase)
+               || themeName.Equals("WarmSand", StringComparison.OrdinalIgnoreCase)
+               || themeName.Equals("Glass", StringComparison.OrdinalIgnoreCase);
     }
 }

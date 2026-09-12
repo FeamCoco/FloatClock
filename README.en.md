@@ -5,12 +5,12 @@
 **Multi-timezone clock bar for Windows · always visible above the taskbar**
 
 Show the current time (HH:mm:ss) of multiple countries/cities in a slim bar docked above
-the taskbar. WinUI / Fluent look & feel, adapts to the system dark/light theme and accent
-color, freely draggable with edge snapping. All conversions are local — **no network access**.
+the taskbar. WinUI / Fluent look & feel, adapts to the system dark/light theme with the
+brand teal accent, freely draggable with edge snapping. All conversions are local — **no network access**.
 
 [English](README.en.md) · [简体中文](README.md)
 
-![Version](https://img.shields.io/badge/version-1.1.3-2563EB)
+![Version](https://img.shields.io/badge/version-1.2.0-0F766E)
 ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -27,9 +27,9 @@ color, freely draggable with edge snapping. All conversions are local — **no n
 
 | Feature | Description |
 |---------|-------------|
-| Multi-timezone display | Multiple cities side by side in `HH:mm:ss`, de-emphasized seconds, tabular (monospaced) digits to prevent jitter |
+| Multi-timezone display | Cities grouped: city name + UTC-offset badge on top, large `HH:mm` with small seconds below; tabular digits to prevent jitter |
 | Fluent appearance | WinUI style: Acrylic clock bar, Mica settings window (Windows 11), automatic solid-color fallback on Windows 10 |
-| Theme system | Follows system dark/light mode + accent color; 7 presets (Light / Dark / High Contrast / Mist Blue / Warm Sand / Glass) + custom colors |
+| Meridian brand theme | Brand teal `#0F766E`; 4 presets (Follow system / Brand light / Brand dark / High contrast) + custom colors |
 | Local time conversion | Uses the system clock + `TimeZoneInfo` — **no network access** |
 | Always on top | Independent topmost window; Z-order is periodically re-asserted so normal windows can't cover it |
 | Free dragging | Draggable anywhere inside the **working area** (the screen area excluding the taskbar) |
@@ -38,7 +38,7 @@ color, freely draggable with edge snapping. All conversions are local — **no n
 | City management | Inline rename, time-zone dropdown, ⋮ menu for reordering / deleting |
 | Multi-monitor | Choose a target monitor; drag across screens |
 | Auto start | Optional; writes to the current user's Run registry key |
-| System tray | If the bar can't be found, right-click the tray icon → "Show clock bar" |
+| System tray | Branded tray icon (white / ink variants picked from the taskbar's light-dark setting); right-click → "Show clock bar" |
 | Single instance | Prevents duplicate launches |
 
 **Defaults:** United Kingdom (`GMT Standard Time`) · follow system theme · docked bottom-right
@@ -53,13 +53,13 @@ The settings window follows the Windows 11 Settings layout (Mica material + Navi
 |-------|-----------------|
 | ![Settings · Clock page](docs/images/settings.png) | ![Settings · Personalization page](docs/images/settings-personalization.png) |
 
-The UI follows the Windows 11 / WinUI (Fluent Design) guidelines (v1.1):
+The UI follows the Windows 11 / WinUI (Fluent Design) guidelines (brand v2):
 
-- **Clock bar** — slim Acrylic strip; city names layered at 60% opacity, seconds de-emphasized; hovering a city highlights it and shows the full date and time zone
-- **Settings window** — Mica material + custom-drawn title bar + NavigationView sidebar (Clock / Personalization / Behavior / About) + Windows 11–style rounded cards
+- **Clock bar** — Acrylic strip with one group per city (city name + offset badge on top, large time + small seconds below), groups separated by 26px of whitespace instead of dividers; the local city carries a brand-teal dot; hovering a group highlights it and shows the full date and time zone
+- **Settings window** — Mica material + custom-drawn title bar + brand mark above the NavigationView sidebar (Clock / Personalization / Behavior / About) + Windows 11–style rounded cards, with a brand-teal indicator bar on the selected item
 - **All controls** (toggles, dropdowns, sliders, context menus, tooltips, scrollbars) restyled to Fluent appearance
 
-Design specs and the three-proposal comparison: [docs/ui-redesign/design-proposals.md](docs/ui-redesign/design-proposals.md); high-fidelity previews: [docs/ui-redesign/mockups.html](docs/ui-redesign/mockups.html).
+Brand spec and icon assets: [docs/brand/README.md](docs/brand/README.md). Earlier three-proposal comparison: [docs/ui-redesign/design-proposals.md](docs/ui-redesign/design-proposals.md).
 
 ---
 
@@ -177,14 +177,14 @@ Created automatically on first launch. Key fields:
   ],
   "appearance": {
     "themeName": "System",
-    "background": "#E9FAFBFC",
-    "foreground": "#FF1B1B1B",
+    "background": "#EBFFFFFF",
+    "foreground": "#FF14201E",
     "separatorColor": "#24000000",
     "fontFamily": "Segoe UI Variable Display, Segoe UI",
-    "fontSize": 15,
+    "fontSize": 19,
     "opacity": 1.0,
-    "barHeight": 40,
-    "cornerRadius": 8,
+    "barHeight": 60,
+    "cornerRadius": 12,
     "horizontalAlignment": "Right",
     "offsetX": 4,
     "offsetY": 2,
@@ -206,12 +206,13 @@ Created automatically on first launch. Key fields:
 | Field | Meaning |
 |-------|---------|
 | `clocks` | City display name + Windows time zone ID |
-| `appearance.themeName` | `System` (follow OS) / `Light` / `Dark` / `HighContrast` / `MistBlue` / `WarmSand` / `Glass` / `Custom` (colors edited manually) |
+| `appearance.themeName` | `System` (follow OS) / `Light` (brand light) / `Dark` (brand dark) / `HighContrast` / `Custom` (colors edited manually) |
 | `freePosition` / `posX` / `posY` | Free position after dragging (relative to the working area) |
 | `horizontalAlignment` + `offsetX/Y` | Edge alignment when not in free position |
 | `edgeSnapDistance` | Edge snap distance (DIPs) |
 
 Old config files upgrade without modification: missing fields fall back to defaults; a missing `themeName` is treated as `System` (follow the OS dark/light theme).
+The decorative presets `MistBlue` / `WarmSand` / `Glass` were removed in brand v2 — if one is present it migrates to the brand light face. `separatorColor` is kept but no longer rendered (cities are separated by whitespace instead of dividers).
 
 Time zone IDs can be picked from the dropdown in settings — no need to type them by hand.
 
